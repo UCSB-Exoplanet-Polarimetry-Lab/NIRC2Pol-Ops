@@ -12,10 +12,20 @@ This repository contains scripts for efficiently operating the NIRC2 Polarimetry
 
 **Files in this repo**
 
-- [Folder] Commissioning Analysis = Various files and scripts from use in commissioning; kept as a "historical record"
-- Fast_Axis_Cal_Sequence.sh = Takes data 0 to 180 deg in steps of 10 for use in finding the fast axis of a HWP.
-- HWP_Rotation_Sequence.sh = Used for typical observing sequences (four critical angles: 0, 45, 22.5, 67.5 deg)
-- Internal_Pol_Cal_Sequence.sh = Takes data rotating both HWP and IMR for instrumental polarization calibration
+- [Folder] `Commissioning Analysis` = Various files and scripts from use in commissioning; kept as a "historical record"
+- `Fast_Axis_Cal_Sequence.sh` = Takes data 0 to 180 deg in steps of 10 for use in finding the fast axis of a HWP.
+- `HWP_Rotation_Sequence.sh` = Used for typical observing sequences (four critical angles: 0, 45, 22.5, 67.5 deg)
+- `Internal_Pol_Cal_Sequence.sh` = Takes data rotating both HWP and IMR for instrumental polarization calibration
+
+**Syntax for using each script**
+
+`bash Fast_Axis_Cal_Sequence.sh FILTER=[filter]`
+
+`bash HWP_Rotation_Sequence.sh KWARG=[KEYWORD_VALUE]`
+
+`bash Internal_Pol_Cal_Sequence.sh FILTER=[filter]`
+
+See the Operations Guide below for a full description of these commands and their various options/keywords.
 
 **Operations/Observer's Guide**
 
