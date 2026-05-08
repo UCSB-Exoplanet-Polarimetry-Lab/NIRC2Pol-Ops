@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Polarimetric_Flats.sh — Script to take polarimetric flats with NIRC2 (rotates HWP constantly through flats)
-# Written by Briley Lewis with Claude v2.1.128 using Sonnet 4.6
+# Flats_Script.sh — Take polarimetric flats with NIRC2
+# Written by Briley Lewis (UCSB) with Claude v2.1.128 using Sonnet 4.6
 
 # Defaults
 NUM_FLATS=5
@@ -13,7 +13,7 @@ print_usage() {
 Usage: $0 [NUM_FLATS=5] [FILT=J]
 
   NUM_FLATS  number of flat exposures to take (default: 5)
-  FILT       filter name: J, H, K/Kp/Ks, or L/Lp (default: J)
+  FILT       filter name: J, H, Ks, Kp, K, Lw, or Lp (default: J)
   SUBC       subarray size in pixels (default: 1024)
 
   Example:
@@ -79,41 +79,14 @@ echo "Turning on flat lamps..."
 modify -s dcs flimagin=0 flspectr=1
 echo "Selecting narrow camera..."
 camera narrow
+echo "Setting filter to $FILT (filter $FILT_NUM 14)..."
+filter "$FILT_NUM" 14
 echo "Setting subarray to $SUBC..."
 subc "$SUBC"
 echo "Opening shutter..."
 shutter open
-echo "Setting object to PolFlat..."
-object PolFlat
-
-##Check HWP motion
-echo "Checking HWP status..."
-HWP_POS=$(show -s pcu2 PCUPR)
-modify -s pcu2 PCUPR=$HWP_POS+45
-HWP_POS_NEW=$(show -s pcu2 PCUPR)
-if [[ "$HWP_POS_NEW" = "$HWP_POS"+45 ]]; then
-  echo "HWP moved successfully to $HWP_POS_NEW degrees. Continuing setup."
-else
-  echo "Error: HWP did not move. Current position: $HWP_POS degrees. Please complete troubleshooting and run this script again."
-  exit 1
-fi
-
-##Move in PCU
-echo "Inserting PCU2 to hwp_center..."
-modify -s pcu2 PCUNAME=hwp_center
-
-##Move in Field Mask
-echo "Inserting 5x10 field mask..."
-modify -s nirc2 slmname=5arcsec_wide
-
-##Moving in Wollaston
-echo "Inserting Wollaston prism and setting filter to $FILT..."
-filter $FILT_NUM 14
-
-##Continuously rotating HWP
-echo "Starting continuous HWP rotation..."
-##NOTE: NEED TO EXPERIMENT WITH HOW LONG HWP ROTATES SO WE CAN MAKE SURE IT CONTINUES ROTATING THROUGH ALL FLATS
-modify -s pcu2 PCUPR=36000 &
+echo "Setting object to flat..."
+object flat
 
 ##take flats
 echo "Taking $NUM_FLATS flat exposures with TINT=$TINT s and COADDS=$COADDS for Filter $FILT..."
