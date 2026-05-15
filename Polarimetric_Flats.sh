@@ -74,7 +74,7 @@ esac
 
 ##setup bench
 echo "Setting up NIRC2 for polarimetric flats with filter $FILT, subarray $SUBC, and $NUM_FLATS exposures..."
-configAOforFlats
+#configAOforFlats # dont need this for now, should have already been done earlier
 echo "Setting domecals=true..."
 modify -s dcs domecals=true
 echo "Turning on flat lamps..."
@@ -92,13 +92,9 @@ object PolFlat
 echo "Inserting PCU2 to hwp_center..."
 modify -s pcu2 PCUNAME=hwp_center
 
-sleep 5
-
 ##Move in Field Mask
 echo "Inserting 5x10 field mask..."
 modify -s nirc2 slmname=5arcsec_wide
-
-sleep 5
 
 ##Moving in Wollaston
 echo "Inserting Wollaston prism and setting filter to $FILT..."
@@ -106,6 +102,8 @@ filter $FILT_NUM 14
 
 tint $TINT
 coadds $COADDS
+
+sleep 60
 
 ##take flats
 echo "Taking $NUM_FLATS flat exposures with TINT=$TINT s and COADDS=$COADDS for Filter $FILT..."
@@ -122,7 +120,7 @@ for ((i=1; i<=NUM_FLATS; i++)); do
   echo "Flat $i/$NUM_FLATS: moving HWP to $TARGET_POS"
   modify -s pcu2 PCUPR="$TARGET_POS" &
   echo "Taking flat exposure..."
-  goi "$NUM_FLATS" || { echo "goi failed"; exit 1; }
+  goi || { echo "goi failed"; exit 1; }
   sleep 10
 
 done
