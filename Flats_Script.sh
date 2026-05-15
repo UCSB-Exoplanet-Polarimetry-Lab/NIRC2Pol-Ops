@@ -83,6 +83,10 @@ echo "Setting filter to $FILT (filter $FILT_NUM 14)..."
 filter "$FILT_NUM" 14
 echo "Setting subarray to $SUBC..."
 subc "$SUBC"
+echo "Setting integration time..."
+tint "$TINT"
+echo "Setting coadds to $COADDS..."
+coadds "$COADDS"
 echo "Opening shutter..."
 shutter open
 echo "Setting object to flat..."

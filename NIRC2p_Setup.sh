@@ -1,15 +1,97 @@
 #!/usr/bin/env bash
 # NIRC2p_Setup.sh — Script to do basic setup of NIRC2 Pol mode, inserts HWP, Wollaston, field mask
-# Written by Briley Lewis (UCSB)
+# Written by Briley Lewis (UCSB) and Rebecca Zhang (UCSB)
 
-read -p "Have you started NIRC2? (y/n): " answer
-case "$answer" in
-    [Yy]|[Yy][Ee][Ss]) ;;  # accepted, do nothing and continue
-    *)
-        echo "Aborting. Please start NIRC2 first."
+# Prompt user for program name
+read -p "Please enter your program name: " program_name
+echo "Program name entered: $program_name"
+
+cat <<EOF
+WARNING: You must have checked with the SA that it's ok to run "configAOforFlats" if running this in the afternoon.
+Please disregard if you are taking morning dome flats.
+Press ENTER to continue:
+EOF
+
+# TODO: Need to find a way to test whether the progname is set properly
+# ############################################
+# # Program Name
+# ############################################
+# TODO: Not sure whether this works and need to check with FITS files generated with this method
+modify -s nirc2plus PROGNAME="$program_name"
+val=$(show -s nirc2plus PROGNAME | awk '{print $3}')
+if [ "$val" = "$program_name" ]; then
+    echo "CHECK: NIRC2 program name is set to $program_name"
+else
+    echo "EXITING: NIRC2 program name is not set correctly"
+    exit 1
+fi
+
+############################################
+# Check selected instrument
+############################################
+# TODO: Change this back to NIRC2 once done testing
+instrument="NIRC2"
+val=$(show -s dcs instrume | awk '{print $3}')
+
+if [ "$val" = "$instrument" ]; then
+    echo "CHECK: Instrument selected is $instrument"
+else
+    echo "EXITING: Instrument selected is not $instrument"
+    exit 1
+fi
+
+
+############################################
+# AO HATCH
+############################################
+# Check if AO hatch is already open
+val=$(show -s ao ifaostat | awk '{print $3}')
+
+if [ "$val" = "open" ]; then
+    echo "CHECK: AO hatch is open"
+else
+    echo "AO hatch is closed — opening..."
+    aohatch open
+    sleep 1  # optional, depending on EPICS latency
+
+    # Re-check state
+    val=$(show -s ao ifaostat | awk '{print $3}')
+    if [ "$val" = "open" ]; then
+        echo "CHECK: AO hatch is now open"
+    else
+        echo "EXITING: AO hatch did not open"
         exit 1
-        ;;
-esac
+    fi
+fi
+
+############################################
+# NIRC2 SHUTTER
+############################################
+# Check if shutter is already open
+val=$(show -s nirc2 shrname | awk '{print $3}')
+
+if [ "$val" = "open" ]; then
+    echo "CHECK: NIRC2 shutter is open"
+else
+    echo "NIRC2 shutter is closed — opening..."
+    shutter open
+    sleep 1  # optional
+
+    # Re-check state
+    val=$(show -s nirc2 shrname | awk '{print $3}')
+    if [ "$val" = "open" ]; then
+        echo "CHECK: NIRC2 shutter is now open"
+    else
+        echo "EXITING: NIRC2 shutter did not open"
+        exit 1
+    fi
+fi
+
+############################################
+# configAOforFlats
+############################################
+configAOforFlats
+
 
 ##basic NIRC2 setup
 aohatch open
