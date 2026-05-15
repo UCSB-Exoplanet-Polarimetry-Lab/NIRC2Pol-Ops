@@ -88,18 +88,6 @@ shutter open
 echo "Setting object to PolFlat..."
 object PolFlat
 
-##Check HWP motion
-echo "Checking HWP status..."
-HWP_POS=$(show -s pcu2 PCUPR)
-modify -s pcu2 PCUPR=$HWP_POS+45
-HWP_POS_NEW=$(show -s pcu2 PCUPR)
-if [[ "$HWP_POS_NEW" = "$HWP_POS"+45 ]]; then
-  echo "HWP moved successfully to $HWP_POS_NEW degrees. Continuing setup."
-else
-  echo "Error: HWP did not move. Current position: $HWP_POS degrees. Please complete troubleshooting and run this script again."
-  exit 1
-fi
-
 ##Move in PCU
 echo "Inserting PCU2 to hwp_center..."
 modify -s pcu2 PCUNAME=hwp_center
