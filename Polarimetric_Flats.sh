@@ -7,6 +7,7 @@ NUM_FLATS=5
 FILT="J"
 COADDS=1
 SUBC=1024
+PCU_ROT_POS=36000
 
 print_usage() {
   cat <<EOF
@@ -56,14 +57,15 @@ if ! [[ "$SUBC" =~ ^[0-9]+$ ]] || (( SUBC <= 0 )); then
   exit 1
 fi
 
+# rotation target positions based on default rotation velocity of 180 deg/sec of PCU
 case "$FILT" in
-  J)  TINT=30;   FILT_NUM=1  ;;
-  H)  TINT=30;   FILT_NUM=2  ;;
-  Ks) TINT=120;  FILT_NUM=6  ;;
-  Kp) TINT=120;  FILT_NUM=7  ;;
-  K)  TINT=120;  FILT_NUM=9  ;;
-  Lw) TINT=0.17; COADDS=3; FILT_NUM=14 ;;
-  Lp) TINT=0.17; COADDS=3; FILT_NUM=15 ;;
+  J)  TINT=30;   FILT_NUM=1  ; PCU_ROT_POS=6300;;
+  H)  TINT=30;   FILT_NUM=2  ; PCU_ROT_POS=6300;;
+  Ks) TINT=120;  FILT_NUM=6  ; PCU_ROT_POS=24000;;
+  Kp) TINT=120;  FILT_NUM=7  ; PCU_ROT_POS=24000;;
+  K)  TINT=120;  FILT_NUM=9  ; PCU_ROT_POS=24000;;
+  Lw) TINT=0.17; COADDS=3; FILT_NUM=14 ; PCU_ROT_POS=1800;;
+  Lp) TINT=0.17; COADDS=3; FILT_NUM=15 ; PCU_ROT_POS=1800;;
   *)
     echo "Error: unrecognized filter '$FILT'. Expected J, H, Ks, Kp, K, Lw, or Lp."
     exit 1
@@ -113,10 +115,12 @@ filter $FILT_NUM 14
 ##Continuously rotating HWP
 echo "Starting continuous HWP rotation..."
 ##NOTE: NEED TO EXPERIMENT WITH HOW LONG HWP ROTATES SO WE CAN MAKE SURE IT CONTINUES ROTATING THROUGH ALL FLATS
-modify -s pcu2 PCUPR=36000 &
+modify -s pcu2 PCUPR=$PCU_ROT_POS &
 
 ##take flats
 echo "Taking $NUM_FLATS flat exposures with TINT=$TINT s and COADDS=$COADDS for Filter $FILT..."
+tint $TINT
+coadds $COADDS
 goi -s "$NUM_FLATS" || { echo "goi failed"; exit 1; }
 echo "Flats complete."
 
