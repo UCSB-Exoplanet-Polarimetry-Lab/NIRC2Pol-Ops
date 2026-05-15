@@ -139,3 +139,5 @@ modify -s dcs flimagin=0 flspectr=0
 # Play script complete sound once at very end
 modify -s nirc2plus scriptip =Yes
 modify -s nirc2plus scriptip =No
+
+modify -s dcs domecals=False
