@@ -4,7 +4,7 @@
 
 # Defaults
 NUM_FLATS=5
-FILT="J"
+FILT=""
 COADDS=1
 SUBC=1024
 
@@ -13,7 +13,7 @@ print_usage() {
 Usage: $0 [NUM_FLATS=5] [FILT=J]
 
   NUM_FLATS  number of flat exposures to take (default: 5)
-  FILT       filter name: J, H, Ks, Kp, K, Lw, or Lp (default: J)
+  FILT       filter name: J, H, Ks, Kp, K, Lw, or Lp (required)
   SUBC       subarray size in pixels (default: 1024)
 
   Example:
@@ -48,7 +48,8 @@ if ! [[ "$NUM_FLATS" =~ ^[0-9]+$ ]] || (( NUM_FLATS <= 0 )); then
   exit 1
 fi
 if [[ -z "$FILT" ]]; then
-  echo "Error: FILT cannot be empty"
+  echo "Error: FILT is required. Specify e.g. FILT=Kp"
+  print_usage
   exit 1
 fi
 if ! [[ "$SUBC" =~ ^[0-9]+$ ]] || (( SUBC <= 0 )); then
@@ -72,7 +73,7 @@ esac
 
 ##setup bench
 echo "Setting up NIRC2 for polarimetric flats with filter $FILT, subarray $SUBC, and $NUM_FLATS exposures..."
-configAOforFlats
+#configAOforFlats || { echo "Aborting: configAOforFlats did not complete successfully."; exit 1; }
 echo "Setting domecals=true..."
 modify -s dcs domecals=true
 echo "Turning on flat lamps..."
@@ -83,6 +84,10 @@ echo "Setting filter to $FILT (filter $FILT_NUM 14)..."
 filter "$FILT_NUM" 14
 echo "Setting subarray to $SUBC..."
 subc "$SUBC"
+echo "Setting integration time..."
+tint "$TINT"
+echo "Setting coadds to $COADDS..."
+coadds "$COADDS"
 echo "Opening shutter..."
 shutter open
 echo "Setting object to flat..."
