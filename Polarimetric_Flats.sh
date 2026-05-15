@@ -59,13 +59,13 @@ fi
 
 # rotation target positions based on default rotation velocity of 180 deg/sec of PCU
 case "$FILT" in
-  J)  TINT=30;   FILT_NUM=1  ; PCU_ROT_POS=6300;
-  H)  TINT=30;   FILT_NUM=2  ; PCU_ROT_POS=6300;
-  Ks) TINT=120;  FILT_NUM=6  ; PCU_ROT_POS=24000;
-  Kp) TINT=120;  FILT_NUM=7  ; PCU_ROT_POS=24000;
-  K)  TINT=120;  FILT_NUM=9  ; PCU_ROT_POS=24000;
-  Lw) TINT=0.17; COADDS=3; FILT_NUM=14 ; PCU_ROT_POS=1800;
-  Lp) TINT=0.17; COADDS=3; FILT_NUM=15 ; PCU_ROT_POS=1800;
+  J)  TINT=30;   FILT_NUM=1  ; PCU_ROT_POS=6300;;
+  H)  TINT=30;   FILT_NUM=2  ; PCU_ROT_POS=6300;;
+  Ks) TINT=120;  FILT_NUM=6  ; PCU_ROT_POS=24000;;
+  Kp) TINT=120;  FILT_NUM=7  ; PCU_ROT_POS=24000;;
+  K)  TINT=120;  FILT_NUM=9  ; PCU_ROT_POS=24000;;
+  Lw) TINT=0.17; COADDS=3; FILT_NUM=14 ; PCU_ROT_POS=1800;;
+  Lp) TINT=0.17; COADDS=3; FILT_NUM=15 ; PCU_ROT_POS=1800;;
   *)
     echo "Error: unrecognized filter '$FILT'. Expected J, H, Ks, Kp, K, Lw, or Lp."
     exit 1
