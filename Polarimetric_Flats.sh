@@ -90,7 +90,8 @@ object PolFlat
 
 ##Move in PCU
 echo "Inserting PCU2 to hwp_center..."
-modify -s pcu2 PCUNAME=hwp_center
+modify -s pcu2 PCUNAME=hwp_center # move pcu to position
+modify -s pcu2 PCUPR=0 # move pcu location to zero
 
 ##Move in Field Mask
 echo "Inserting 5x10 field mask..."
@@ -113,18 +114,21 @@ for ((i=1; i<=NUM_FLATS; i++)); do
 
   # Toggle HWP position
   if (( i % 2 == 1 )); then
-    TARGET_POS=0
-  else
     TARGET_POS=$PCU_ROT_POS
+  else
+    TARGET_POS=0
   fi
 
   echo "Flat $i/$NUM_FLATS: moving HWP to $TARGET_POS"
   modify -s pcu2 PCUPR="$TARGET_POS" &
+  sleep 1
   echo "Taking flat exposure..."
   goi -s || { echo "goi failed"; exit 1; }
   sleep 10
 
 done
+
+modify -s pcu2 PCUPR=0 # reset to zero
 
 echo "Flats complete."
 
