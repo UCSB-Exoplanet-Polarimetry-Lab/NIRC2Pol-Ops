@@ -103,7 +103,8 @@ filter $FILT_NUM 14
 tint $TINT
 coadds $COADDS
 
-sleep 60
+echo "Waiting for 90 seconds to let AO system movement settle..."
+sleep 90
 
 ##take flats
 echo "Taking $NUM_FLATS flat exposures with TINT=$TINT s and COADDS=$COADDS for Filter $FILT..."
@@ -120,7 +121,7 @@ for ((i=1; i<=NUM_FLATS; i++)); do
   echo "Flat $i/$NUM_FLATS: moving HWP to $TARGET_POS"
   modify -s pcu2 PCUPR="$TARGET_POS" &
   echo "Taking flat exposure..."
-  goi || { echo "goi failed"; exit 1; }
+  goi -s || { echo "goi failed"; exit 1; }
   sleep 10
 
 done
