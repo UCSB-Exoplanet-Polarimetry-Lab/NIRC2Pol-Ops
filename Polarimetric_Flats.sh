@@ -59,13 +59,13 @@ fi
 
 # rotation target positions based on default rotation velocity of 180 deg/sec of PCU
 case "$FILT" in
-  J)  TINT=30;   FILT_NUM=1  ; PCU_ROT_POS=6300;;
-  H)  TINT=30;   FILT_NUM=2  ; PCU_ROT_POS=6300;;
-  Ks) TINT=120;  FILT_NUM=6  ; PCU_ROT_POS=24000;;
-  Kp) TINT=120;  FILT_NUM=7  ; PCU_ROT_POS=24000;;
-  K)  TINT=120;  FILT_NUM=9  ; PCU_ROT_POS=24000;;
-  Lw) TINT=0.17; COADDS=3; FILT_NUM=14 ; PCU_ROT_POS=1800;;
-  Lp) TINT=0.17; COADDS=3; FILT_NUM=15 ; PCU_ROT_POS=1800;;
+  J)  TINT=30;   FILT_NUM=1; PCU_ROT_POS=6300;;
+  H)  TINT=30;   FILT_NUM=2; PCU_ROT_POS=6300;;
+  Ks) TINT=120;  FILT_NUM=6; PCU_ROT_POS=24000;;
+  Kp) TINT=120;  FILT_NUM=7; PCU_ROT_POS=24000;;
+  K)  TINT=120;  FILT_NUM=9; PCU_ROT_POS=24000;;
+  Lw) TINT=0.17; COADDS=3; FILT_NUM=14; PCU_ROT_POS=1800;;
+  Lp) TINT=0.17; COADDS=3; FILT_NUM=15; PCU_ROT_POS=1800;;
   *)
     echo "Error: unrecognized filter '$FILT'. Expected J, H, Ks, Kp, K, Lw, or Lp."
     exit 1
@@ -104,24 +104,41 @@ fi
 echo "Inserting PCU2 to hwp_center..."
 modify -s pcu2 PCUNAME=hwp_center
 
+sleep 5
+
 ##Move in Field Mask
 echo "Inserting 5x10 field mask..."
 modify -s nirc2 slmname=5arcsec_wide
+
+sleep 5
 
 ##Moving in Wollaston
 echo "Inserting Wollaston prism and setting filter to $FILT..."
 filter $FILT_NUM 14
 
-##Continuously rotating HWP
-echo "Starting continuous HWP rotation..."
-##NOTE: NEED TO EXPERIMENT WITH HOW LONG HWP ROTATES SO WE CAN MAKE SURE IT CONTINUES ROTATING THROUGH ALL FLATS
-modify -s pcu2 PCUPR=$PCU_ROT_POS &
+tint $TINT
+coadds $COADDS
 
 ##take flats
 echo "Taking $NUM_FLATS flat exposures with TINT=$TINT s and COADDS=$COADDS for Filter $FILT..."
-tint $TINT
-coadds $COADDS
-goi -s "$NUM_FLATS" || { echo "goi failed"; exit 1; }
+
+for ((i=1; i<=NUM_FLATS; i++)); do
+
+  # Toggle HWP position
+  if (( i % 2 == 1 )); then
+    TARGET_POS=0
+  else
+    TARGET_POS=$PCU_ROT_POS
+  fi
+
+  echo "Flat $i/$NUM_FLATS: moving HWP to $TARGET_POS"
+  modify -s pcu2 PCUPR="$TARGET_POS" &
+  echo "Taking flat exposure..."
+  goi "$NUM_FLATS" || { echo "goi failed"; exit 1; }
+  sleep 10
+
+done
+
 echo "Flats complete."
 
 ##turn off lamps
