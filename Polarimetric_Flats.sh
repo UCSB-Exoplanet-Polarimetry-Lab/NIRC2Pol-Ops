@@ -2,6 +2,8 @@
 # Polarimetric_Flats.sh — Script to take polarimetric flats with NIRC2 (rotates HWP constantly through flats)
 # Written by Jayke Nguyen and Briley Lewis with Claude v2.1.128 using Sonnet 4.6
 
+##USER MUST RUN CONFIGAO4FLATS OR DO THOSE STEPS MANUALLY
+
 # Defaults
 NUM_FLATS=5
 FILT="J"
