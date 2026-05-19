@@ -141,3 +141,5 @@ modify -s dcs domecals=false
 # Play script complete sound once at very end
 modify -s nirc2plus scriptip =Yes
 modify -s nirc2plus scriptip =No
+
+modify -s dcs domecals=False
