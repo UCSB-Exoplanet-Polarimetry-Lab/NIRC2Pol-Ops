@@ -101,6 +101,8 @@ echo "Flats complete."
 ##turn off lamps
 echo "Turning off flat lamps..."
 modify -s dcs flimagin=0 flspectr=0
+echo "Setting domecals=false..."
+modify -s dcs domecals=false
 
 # Play script complete sound once at very end
 modify -s nirc2plus scriptip =Yes
