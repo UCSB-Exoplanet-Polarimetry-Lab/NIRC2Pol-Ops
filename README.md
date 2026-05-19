@@ -28,6 +28,12 @@ This repository contains scripts for efficiently operating the NIRC2 Polarimetry
 
 `bash Internal_Pol_Cal_Sequence.sh FILTER=[filter]`
 
+`bash Flats_Script.sh FILT=[filter]`
+
+`bash Darks_Script.sh <data_folder> <output_script_folder>`
+
+`bash Polarimetric_Flats.sh FILT=[filter]`
+
 See the Operations Guide below for a full description of these commands and their various options/keywords.
 
 **Operations/Observer's Guide**
