@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # hwp_rot_seq.sh — HWP (PCU rotator) movement with NIRC2 images
+# Written by Rebecca Zhang (UCSB)
 
 # --------------------
 # Defaults (override with key=value args)
