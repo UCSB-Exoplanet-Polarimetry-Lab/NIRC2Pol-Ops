@@ -2,6 +2,8 @@
 # Flats_Script.sh — Take polarimetric flats with NIRC2
 # Written by Briley Lewis (UCSB) with Claude v2.1.128 using Sonnet 4.6
 
+##USER MUST RUN CONFIGAO4FLATS OR DO THOSE STEPS MANUALLY
+
 # Defaults
 NUM_FLATS=5
 FILT=""
@@ -101,6 +103,8 @@ echo "Flats complete."
 ##turn off lamps
 echo "Turning off flat lamps..."
 modify -s dcs flimagin=0 flspectr=0
+echo "Setting domecals=false..."
+modify -s dcs domecals=false
 
 # Play script complete sound once at very end
 modify -s nirc2plus scriptip =Yes

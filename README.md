@@ -16,6 +16,9 @@ This repository contains scripts for efficiently operating the NIRC2 Polarimetry
 - `Fast_Axis_Cal_Sequence.sh` = Takes data 0 to 180 deg in steps of 10 for use in finding the fast axis of a HWP.
 - `HWP_Rotation_Sequence.sh` = Used for typical observing sequences (four critical angles: 0, 45, 22.5, 67.5 deg)
 - `Internal_Pol_Cal_Sequence.sh` = Takes data rotating both HWP and IMR for instrumental polarization calibration
+- `Flats_Script.sh` = Takes regular dome flats for a user-specified filter (do not use on sky!)
+- `Darks_Script.sh` = Generates script to take necessary darks based on images in a specified folder
+- `Polarimetric_Flats.sh` = Takes polarimetric dome flats (i.e. HWP continuously rotating) (do not use on sky!)
 
 **Syntax for using each script**
 
@@ -24,6 +27,12 @@ This repository contains scripts for efficiently operating the NIRC2 Polarimetry
 `bash HWP_Rotation_Sequence.sh KWARG=[KEYWORD_VALUE]`
 
 `bash Internal_Pol_Cal_Sequence.sh FILTER=[filter]`
+
+`bash Flats_Script.sh FILT=[filter]`
+
+`bash Darks_Script.sh <data_folder> <output_script_folder>`
+
+`bash Polarimetric_Flats.sh FILT=[filter]`
 
 See the Operations Guide below for a full description of these commands and their various options/keywords.
 
