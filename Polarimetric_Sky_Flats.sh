@@ -54,6 +54,8 @@ trap cleanup EXIT # set cleanup incase anything fails
 
 echo "Setting object to PolSkyFlat..."
 object PolSkyFlat || exit 1
+##set imtype
+imtype calib
 
 ##Move in PCU
 echo "Inserting PCU2 to hwp_center..."

@@ -64,6 +64,7 @@ END {
     print "# Approximate total runtime: " total " seconds (" h "h " m "m " s "s)"
     print ""
     print "object dark"
+    print "imtype dark"
     print "shutter close"
     print ""
     for (i = 1; i <= n; i++) {

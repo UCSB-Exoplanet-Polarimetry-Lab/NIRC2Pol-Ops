@@ -59,6 +59,9 @@ if ! [[ "$SUBC" =~ ^[0-9]+$ ]] || (( SUBC <= 0 )); then
   exit 1
 fi
 
+##set imtype
+imtype calib
+
 # rotation target positions based on default rotation velocity of 180 deg/sec of PCU
 case "$FILT" in
   J)  TINT=30;   FILT_NUM=1; PCU_ROT_POS=6300;;

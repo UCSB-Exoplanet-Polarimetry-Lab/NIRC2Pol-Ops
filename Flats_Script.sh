@@ -59,6 +59,9 @@ if ! [[ "$SUBC" =~ ^[0-9]+$ ]] || (( SUBC <= 0 )); then
   exit 1
 fi
 
+##set imtype
+imtype calib
+
 case "$FILT" in
   J)  TINT=30;   FILT_NUM=1  ;;
   H)  TINT=30;   FILT_NUM=2  ;;

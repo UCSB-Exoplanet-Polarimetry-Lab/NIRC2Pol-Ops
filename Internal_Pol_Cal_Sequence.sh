@@ -35,6 +35,9 @@ read -r -p "Does this look correct? Press Enter to continue, or type anything to
 echo -n "HWP status: "; show -s pcu2 PCURSTAT
 echo -n "HWP angle:  "; show -s pcu2 PCUPR
 
+##set imtype
+imtype calib
+
 # Loop over IMR angles
 for imr_ang in $IMR_ANGLES; do
   echo "==== Moving IMR to $imr_ang deg ===="
