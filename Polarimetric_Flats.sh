@@ -2,8 +2,6 @@
 # Polarimetric_Flats.sh — Script to take polarimetric flats with NIRC2 (rotates HWP constantly through flats)
 # Written by Jayke Nguyen and Briley Lewis with Claude v2.1.128 using Sonnet 4.6
 
-##USER MUST RUN CONFIGAO4FLATS OR DO THOSE STEPS MANUALLY
-
 # Defaults
 NUM_FLATS=5
 FILT="J"
@@ -62,6 +60,7 @@ fi
 ##set imtype
 imtype calib
 
+
 # rotation target positions based on default rotation velocity of 180 deg/sec of PCU
 case "$FILT" in
   J)  TINT=30;   FILT_NUM=1; PCU_ROT_POS=6300;;
@@ -69,8 +68,8 @@ case "$FILT" in
   Ks) TINT=120;  FILT_NUM=6; PCU_ROT_POS=24000;;
   Kp) TINT=120;  FILT_NUM=7; PCU_ROT_POS=24000;;
   K)  TINT=120;  FILT_NUM=9; PCU_ROT_POS=24000;;
-  Lw) TINT=0.17; COADDS=3; FILT_NUM=14; PCU_ROT_POS=1800;;
-  Lp) TINT=0.17; COADDS=3; FILT_NUM=15; PCU_ROT_POS=1800;;
+  Lw) TINT=0.17; COADDS=100; FILT_NUM=14; PCU_ROT_POS=24000;;
+  Lp) TINT=0.17; COADDS=100; FILT_NUM=15; PCU_ROT_POS=24000;;
   *)
     echo "Error: unrecognized filter '$FILT'. Expected J, H, Ks, Kp, K, Lw, or Lp."
     exit 1
