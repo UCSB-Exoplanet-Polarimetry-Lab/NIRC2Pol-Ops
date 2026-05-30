@@ -10,6 +10,8 @@ POLL=0.4                         # seconds between queries
 NUM_EXPOSURES=1                  # exposures per HWP angle
 HWP_CYCLES=1                     # number of HWP cycles
 #FILT=""
+# Image type ("object" or "calib")
+IMTYPE="object"
 
 # Additive offsets (currently unused)
 J_ADD=0
@@ -33,7 +35,7 @@ OBJ_FROM_ARGS=0
 print_usage() {
   cat <<EOF
 Usage:
-  $0 [OBJ="name"] [ANGLES="0 22.5 45 67.5"] [TOL=0.05] [POLL=0.1] [NUM_EXPOSURES=1] [HWP_CYCLES=1] [XY="dx dy"] [TEST=true]
+  $0 [OBJ="name"] [IMTYPE="object|calib"] [ANGLES="0 22.5 45 67.5"] [TOL=0.05] [POLL=0.1] [NUM_EXPOSURES=1] [HWP_CYCLES=1] [XY="dx dy"] [TEST=true]
 
   Example with dither:
     $0 XY="3 0"
@@ -58,6 +60,16 @@ for arg in "$@"; do
     OBJ)
       OBJ="$val"
       OBJ_FROM_ARGS=1
+      ;;
+    IMTYPE)
+      val_lower=$(printf '%s' "$val" | tr '[:upper:]' '[:lower:]')
+      case "$val_lower" in
+        object|calib) IMTYPE="$val_lower" ;;
+        *)
+          echo "Error: IMTYPE must be 'object' or 'calib'. Got: '$val'"
+          exit 1
+          ;;
+      esac
       ;;
     ANGLES)         ANGLES="$val" ;;
     TOL)            TOL="$val" ;;
@@ -173,6 +185,7 @@ echo "--------------------------------------------------"
 echo "NIRC2 HWP sequence will run with:"
 echo "  BASE OBJECT NAME   = $BASE_OBJ"
 echo "  ORIGINAL OBJ NAME  = $OBJ"
+echo "  IMTYPE             = $IMTYPE"
 echo "  HWP ANGLES         = $ANGLES"
 echo "  HWP CYCLES         = $HWP_CYCLES"
 echo "  NUM EXPOSURES      = $NUM_EXPOSURES"
@@ -248,6 +261,7 @@ run_hwp_cycles() {
       label="$BASE_OBJ"
 
       object "$label" || { echo "object failed ($label)"; break; }
+      imtype "$IMTYPE" || { echo "imtype failed ($IMTYPE)"; break; }
       goi -s "$NUM_EXPOSURES" || { echo "goi failed ($label x$NUM_EXPOSURES)"; break; }
     done
 
