@@ -6,8 +6,8 @@
 
 # --- user inputs ---
 OBJ="pol_cal"   # object base name (quotes OK if spaces)
-ANGLES="0 10 20 30 40 50 60 70 80 90 100 110 120"                    # list of HWP angles (deg)
-IMR_ANGLES="0 15 30 45 60 75 90 105 120 135 150"                         # list of IMR angles (deg)
+ANGLES="0 10 20 30 40 50 60 70 80 90"                    # list of HWP angles (deg)
+IMR_ANGLES="0 30 60 90 120"                         # list of IMR angles (deg)
 TOL=0.05                                   # degrees tolerance for HWP
 IMR_TOL=0.05                               # degrees tolerance for IMR
 POLL=0.4                                   # seconds between queries
