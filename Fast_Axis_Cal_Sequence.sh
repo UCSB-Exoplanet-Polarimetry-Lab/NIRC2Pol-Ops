@@ -197,7 +197,7 @@ show -s pcu2 PCURSTAT || true
 show -s pcu2 PCUPR || true
 
 ##set imtype
-imtype calib
+imtype calibration || exit 1
 
 # ----------------------------------------------------------------------
 # Helper: attempt a dither (test mode aware)

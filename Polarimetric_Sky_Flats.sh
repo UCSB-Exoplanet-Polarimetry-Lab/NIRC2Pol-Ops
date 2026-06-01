@@ -147,7 +147,7 @@ echo "Setting object to PolSkyFlat..."
 object PolSkyFlat || exit 1
 
 #set imtype
-imtype calib
+imtype calibration || exit 1
 
 # take flats
 echo "Taking $NUM_FLATS flat exposures with ITIME=$ITIME and COADDS=$COADDS..."

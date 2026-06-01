@@ -58,7 +58,7 @@ if ! [[ "$SUBC" =~ ^[0-9]+$ ]] || (( SUBC <= 0 )); then
 fi
 
 ##set imtype
-imtype calib
+imtype calibration || exit 1
 
 
 # rotation target positions based on default rotation velocity of 180 deg/sec of PCU

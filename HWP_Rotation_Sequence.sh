@@ -10,7 +10,7 @@ POLL=0.4                         # seconds between queries
 NUM_EXPOSURES=1                  # exposures per HWP angle
 HWP_CYCLES=1                     # number of HWP cycles
 #FILT=""
-# Image type ("object" or "calib")
+# Image type ("object" or "calibration")
 IMTYPE="object"
 
 # Additive offsets (currently unused)
@@ -35,7 +35,7 @@ OBJ_FROM_ARGS=0
 print_usage() {
   cat <<EOF
 Usage:
-  $0 [OBJ="name"] [IMTYPE="object|calib"] [ANGLES="0 22.5 45 67.5"] [TOL=0.05] [POLL=0.1] [NUM_EXPOSURES=1] [HWP_CYCLES=1] [XY="dx dy"] [TEST=true]
+  $0 [OBJ="name"] [IMTYPE="object|calibration"] [ANGLES="0 22.5 45 67.5"] [TOL=0.05] [POLL=0.1] [NUM_EXPOSURES=1] [HWP_CYCLES=1] [XY="dx dy"] [TEST=true]
 
   Example with dither:
     $0 XY="3 0"
@@ -64,9 +64,9 @@ for arg in "$@"; do
     IMTYPE)
       val_lower=$(printf '%s' "$val" | tr '[:upper:]' '[:lower:]')
       case "$val_lower" in
-        object|calib) IMTYPE="$val_lower" ;;
+        object|calibration) IMTYPE="$val_lower" ;;
         *)
-          echo "Error: IMTYPE must be 'object' or 'calib'. Got: '$val'"
+          echo "Error: IMTYPE must be 'object' or 'calibration'. Got: '$val'"
           exit 1
           ;;
       esac
