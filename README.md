@@ -13,7 +13,7 @@ This repository contains scripts for efficiently operating the NIRC2 Polarimetry
 **Files in this repo**
 
 - [Folder] `Commissioning Analysis` = Various files and scripts from use in commissioning; kept as a "historical record"
-- [Folder] `docs` = Source for the observing time calculator, published via GitHub Pages
+- [Folder] `docs/efficiency-calc` = Source for the observing time calculator, published via GitHub Pages
 - `Fast_Axis_Cal_Sequence.sh` = Takes data 0 to 180 deg in steps of 10 for use in finding the fast axis of a HWP.
 - `HWP_Rotation_Sequence.sh` = Used for typical observing sequences (four critical angles: 0, 45, 22.5, 67.5 deg)
 - `Internal_Pol_Cal_Sequence.sh` = Takes data rotating both HWP and IMR for instrumental polarization calibration
@@ -41,7 +41,7 @@ See the Operations Guide below for a full description of these commands and thei
 
 HWP cycling makes NIRC2-Pol considerably more expensive than straight imaging, so total elapsed time is worth estimating before a run. An interactive calculator is available at:
 
-**https://ucsb-exoplanet-polarimetry-lab.github.io/NIRC2Pol-Ops/**
+**https://ucsb-exoplanet-polarimetry-lab.github.io/NIRC2Pol-Ops/efficiency-calc/**
 
 Its cadence inputs correspond to the keywords of `HWP_Rotation_Sequence.sh` (`NUM_EXPOSURES`, `HWP_CYCLES`). The underlying estimate is:
 
