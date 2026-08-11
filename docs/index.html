@@ -99,6 +99,8 @@
   }
 
   /* Each published tool is one card; the list grows as the repo publishes more. */
+  .tools { display: grid; gap: 12px; }
+
   .tool {
     display: block;
     background: var(--surface);
@@ -190,14 +192,27 @@
 
   <h2>Tools</h2>
 
-  <a class="tool" href="efficiency-calc/">
-    <h3>HWP cycle time calculator</h3>
-    <p>
-      Estimate total elapsed time, on-sky integration and efficiency for a proposed observing
-      setup, with a breakdown of where the overhead goes.
-    </p>
-    <span class="path">efficiency-calc/</span>
-  </a>
+  <div class="tools">
+
+    <a class="tool" href="efficiency-calc/">
+      <h3>HWP cycle time calculator</h3>
+      <p>
+        Estimate total elapsed time, on-sky integration and efficiency for a proposed observing
+        setup, with a breakdown of where the overhead goes.
+      </p>
+      <span class="path">efficiency-calc/</span>
+    </a>
+
+    <a class="tool" href="exposure-time-calc/">
+      <h3>Exposure time calculator</h3>
+      <p>
+        Signal-to-noise for a companion, and the observing time needed to detect a given
+        polarization fraction at a chosen threshold. Shares the timing model above.
+      </p>
+      <span class="path">exposure-time-calc/</span>
+    </a>
+
+  </div>
 
   <h2>Documentation</h2>
 
