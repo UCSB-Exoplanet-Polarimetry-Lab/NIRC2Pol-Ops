@@ -1,6 +1,6 @@
 # NIRC2-Pol Operations Software
 
-Last Updated: 29 April 2026
+Last Updated: 11 Aug 2026
 
 NIRC2 Polarimetry (NIRC2-Pol, or nirc2p) is a dual-channel polarimetry mode on the Keck II NIRC2 infrared imager. Dual-channel polarimetry uses a polarizing beamsplitter to split the incoming light into two orthogonal polarization states, and a half-wave plate (HWP) to modulate the angle of polarization. Through cycles of four critical HWP angles (0°, 45°, 22.5°, 67.5°), it is possible to recover the linear Stokes vector components Q and U (see de Boer+ 2020 for a description of dual-channel polarimetry and double differencing). 
 
@@ -19,13 +19,12 @@ Related code lives in other repositories:
 **Files in this repo**
 
 - [Folder] `Commissioning Analysis` = Various files and scripts from use in commissioning; kept as a "historical record"
-- [Folder] `docs/efficiency-calc` = Source for the observing time calculator, published via GitHub Pages
+- [Folder] `docs/` = Source for the efficiency calculator and SNR calculator, published via GitHub Pages
 - `Fast_Axis_Cal_Sequence.sh` = Takes data 0 to 180 deg in steps of 10 for use in finding the fast axis of a HWP.
 - `HWP_Rotation_Sequence.sh` = Used for typical observing sequences (four critical angles: 0, 45, 22.5, 67.5 deg)
 - `Internal_Pol_Cal_Sequence.sh` = Takes data rotating both HWP and IMR for instrumental polarization calibration
-- `Flats_Script.sh` = Takes regular dome flats for a user-specified filter (do not use on sky!)
 - `Darks_Script.sh` = Generates script to take necessary darks based on images in a specified folder
-- `Polarimetric_Flats.sh` = Takes polarimetric dome flats (i.e. HWP continuously rotating) (do not use on sky!)
+- `Polarimetric_Flats.sh` = Takes polarimetric dome flats (i.e. HWP continuously rotating) (do not use on sky!) [deprecated]
 
 **Syntax for using each script**
 
