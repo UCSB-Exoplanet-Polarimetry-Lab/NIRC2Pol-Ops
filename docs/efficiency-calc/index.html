@@ -255,6 +255,14 @@
     color: var(--ink-2);
   }
 
+  /* The symbol this field carries in the equation, so the two can be read
+     against each other. Every name in the equation appears on some label. */
+  .sym {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
   .field .hint {
     font-size: 11.5px;
     color: var(--muted);
@@ -592,6 +600,26 @@
 
   .eq-legend li { margin-bottom: 3px; }
 
+  /* Every name used in the equation, defined. Each one also appears on the
+     label of the field that sets it. */
+  .eq-defs {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 5px 14px;
+    margin: 18px 0 0;
+    padding-top: 15px;
+    border-top: 1px solid var(--line-soft);
+    font-size: 12px;
+  }
+
+  .eq-defs dt {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .eq-defs dd { margin: 0; color: var(--muted); }
+
   /* ─── actions ────────────────────────────────────────────────────────── */
   .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 
@@ -757,7 +785,7 @@
           <legend>Cadence</legend>
 
           <div class="field">
-            <label for="nd">Dither positions</label>
+            <label for="nd">Dither positions &mdash; <span class="sym">nd</span></label>
             <div class="control">
               <button class="step" type="button" data-step="-1" data-target="nd" aria-label="Decrease dither positions">&minus;</button>
               <input type="number" id="nd" min="1" step="1" value="4">
@@ -767,7 +795,7 @@
           </div>
 
           <div class="field">
-            <label for="nf">Frames per HWP angle</label>
+            <label for="nf">Frames per HWP angle &mdash; <span class="sym">nf</span></label>
             <div class="control">
               <button class="step" type="button" data-step="-1" data-target="nf" aria-label="Decrease frames per HWP angle">&minus;</button>
               <input type="number" id="nf" min="1" step="1" value="3">
@@ -778,7 +806,7 @@
           </div>
 
           <div class="field">
-            <label for="nc">HWP cycles per dither</label>
+            <label for="nc">HWP cycles per dither &mdash; <span class="sym">nc</span></label>
             <div class="control">
               <button class="step" type="button" data-step="-1" data-target="nc" aria-label="Decrease HWP cycles per dither">&minus;</button>
               <input type="number" id="nc" min="1" step="1" value="1">
@@ -793,7 +821,7 @@
           <legend>Detector</legend>
 
           <div class="field">
-            <label for="coadds">Coadds</label>
+            <label for="coadds">Coadds &mdash; <span class="sym">coadds</span></label>
             <div class="control">
               <button class="step" type="button" data-step="-1" data-target="coadds" aria-label="Decrease coadds">&minus;</button>
               <input type="number" id="coadds" min="1" step="1" value="50">
@@ -802,7 +830,7 @@
           </div>
 
           <div class="field">
-            <label for="itime">Integration per coadd &mdash; <span style="font-family:var(--font-mono)">itime</span></label>
+            <label for="itime">Integration per coadd &mdash; <span class="sym">itime</span></label>
             <div class="control">
               <input type="number" id="itime" min="0" step="0.01" value="0.2">
               <span class="unit">sec</span>
@@ -810,7 +838,7 @@
           </div>
 
           <div class="field">
-            <label for="tread">Readout time &mdash; <span style="font-family:var(--font-mono)">tread</span></label>
+            <label for="tread">Readout time &mdash; <span class="sym">tread</span></label>
             <div class="control">
               <input type="number" id="tread" min="0" step="0.01" value="0.18">
               <span class="unit">sec</span>
@@ -822,7 +850,7 @@
           </div>
 
           <div class="field">
-            <label for="nread">Number of reads &mdash; <span style="font-family:var(--font-mono)">nread</span></label>
+            <label for="nread">Number of reads &mdash; <span class="sym">nread</span></label>
             <div class="control">
               <button class="step" type="button" data-step="-1" data-target="nread" aria-label="Decrease number of reads">&minus;</button>
               <input type="number" id="nread" min="1" step="1" value="2">
@@ -833,7 +861,7 @@
               <button class="preset" type="button" data-for="nread" data-val="6">MCDS-3</button>
               <button class="preset" type="button" data-for="nread" data-val="16">MCDS-8</button>
             </div>
-            <p class="hint">Only <span style="font-family:var(--font-mono)">nread &minus; 1</span> reads are charged &mdash; the first is absorbed by the integration.</p>
+            <p class="hint">Only <span class="sym">nread &minus; 1</span> reads are charged &mdash; the first is absorbed by the integration.</p>
           </div>
         </fieldset>
 
@@ -841,16 +869,16 @@
           <summary>Overhead constants</summary>
           <div class="adv-body">
             <div class="field">
-              <label for="tao">AO overhead per dither move</label>
+              <label for="tao">AO overhead per dither move &mdash; <span class="sym">tao</span></label>
               <div class="control">
                 <input type="number" id="tao" min="0" step="0.5" value="6">
                 <span class="unit">sec</span>
               </div>
-              <p class="hint">Open loops, slew, reposition FSMs and FCS, close TT and DM loops. Charged <span style="font-family:var(--font-mono)">ndither + 1</span> times.</p>
+              <p class="hint">Open loops, slew, reposition FSMs and FCS, close TT and DM loops. Charged <span class="sym">ndither + 1</span> times.</p>
             </div>
 
             <div class="field">
-              <label for="trw">Image read and write</label>
+              <label for="trw">Image read and write &mdash; <span class="sym">trw</span></label>
               <div class="control">
                 <input type="number" id="trw" min="0" step="0.5" value="12">
                 <span class="unit">sec</span>
@@ -859,7 +887,7 @@
             </div>
 
             <div class="field">
-              <label for="thwp">HWP rotation command</label>
+              <label for="thwp">HWP rotation command &mdash; <span class="sym">thwp</span></label>
               <div class="control">
                 <input type="number" id="thwp" min="0" step="0.5" value="1">
                 <span class="unit">sec</span>
@@ -868,7 +896,7 @@
             </div>
 
             <div class="field">
-              <label for="nang">HWP angles per cycle</label>
+              <label for="nang">HWP angles per cycle &mdash; <span class="sym">nang</span></label>
               <div class="control">
                 <button class="step" type="button" data-step="-1" data-target="nang" aria-label="Decrease HWP angles per cycle">&minus;</button>
                 <input type="number" id="nang" min="1" step="1" value="4">
@@ -945,6 +973,21 @@
           <li><b id="fPerImage">28.0</b> s per image at the detector, plus <b id="fPerImageOh">13.0</b> s to read, write and step the plate</li>
         </ul>
 
+        <dl class="eq-defs">
+          <dt>T</dt>       <dd>total elapsed time</dd>
+          <dt>nd</dt>      <dd>dither positions</dd>
+          <dt>nf</dt>      <dd>frames per HWP angle</dd>
+          <dt>nc</dt>      <dd>HWP cycles per dither</dd>
+          <dt>nang</dt>    <dd>HWP angles per cycle &mdash; 4 for the standard 0&deg;, 45&deg;, 22.5&deg;, 67.5&deg; cycle</dd>
+          <dt>coadds</dt>  <dd>coadds per image</dd>
+          <dt>itime</dt>   <dd>integration per coadd, seconds</dd>
+          <dt>tread</dt>   <dd>readout time per read, seconds</dd>
+          <dt>nread</dt>   <dd>reads per coadd; only <span class="sym">nread&minus;1</span> are charged, the first being absorbed by the integration</dd>
+          <dt>tao</dt>     <dd>AO recovery per dither move, seconds</dd>
+          <dt>trw</dt>     <dd>image read and write, seconds</dd>
+          <dt>thwp</dt>    <dd>HWP rotation command, seconds</dd>
+        </dl>
+
         <div class="actions">
           <button class="btn" type="button" id="btnCopy">Copy summary</button>
         </div>
@@ -953,10 +996,10 @@
   </div>
 
   <p class="colophon">
-    Elapsed time is <code>tao&middot;(ndither+1)</code> for AO recovery at each dither, plus
-    <code>nangles&middot;(trw+thwp)&middot;ndither&middot;nframes&middot;ncycles</code> to read, write and step the
+    Elapsed time is <code>tao&middot;(nd+1)</code> for AO recovery at each dither, plus
+    <code>nang&middot;nd&middot;nf&middot;nc&middot;(trw+thwp)</code> to read, write and step the
     plate for every image, plus
-    <code>nangles&middot;ndither&middot;nframes&middot;ncycles&middot;coadds&middot;(itime+tread&middot;(nread&minus;1))</code>
+    <code>nang&middot;nd&middot;nf&middot;nc&middot;coadds&middot;(itime+tread&middot;(nread&minus;1))</code>
     at the detector. Efficiency is on-sky integration divided by elapsed time. All figures are
     estimates for planning &mdash; they exclude acquisition, focus, and calibration.
   </p>
@@ -1132,22 +1175,62 @@
     });
   }
 
+  function padR(str, n) { while (str.length < n) str += " "; return str; }
+  function padL(str, n) { while (str.length < n) str = " " + str; return str; }
+  function rule(n) { var o = ""; while (o.length < n) o += "\u2500"; return o; }
+
+  /* One term per line rather than one long line: the three terms are summed,
+     so stacking them shows that directly and keeps the block inside the card
+     instead of overflowing into a horizontal scroll. The nang\u00b7nd\u00b7nf\u00b7nc factor
+     is written in the same order in both the second and third terms so the
+     shared image count is visible at a glance. */
   function renderEquation(s, r) {
-    document.getElementById("eqSym").textContent =
-      "T  =  tao\u00b7(nd+1)   +   nang\u00b7(trw+thwp)\u00b7nd\u00b7nf\u00b7nc   +   nang\u00b7nd\u00b7nf\u00b7nc\u00b7coadds\u00b7(itime + tread\u00b7(nread\u22121))";
+    var D = "\u00b7";
+    var imagesSym = "nang" + D + "nd" + D + "nf" + D + "nc";
+    var imagesNum = [s.nang, s.nd, s.nf, s.nc].map(trimNum).join(D);
 
-    var a = trimNum(s.tao) + "\u00b7(" + trimNum(s.nd) + "+1)";
-    var b = trimNum(s.nang) + "\u00b7(" + trimNum(s.trw) + "+" + trimNum(s.thwp) + ")\u00b7" +
-            trimNum(s.nd) + "\u00b7" + trimNum(s.nf) + "\u00b7" + trimNum(s.nc);
-    var c = trimNum(s.nang) + "\u00b7" + trimNum(s.nd) + "\u00b7" + trimNum(s.nf) + "\u00b7" +
-            trimNum(s.nc) + "\u00b7" + trimNum(s.coadds) + "\u00b7(" + trimNum(s.itime) +
-            " + " + trimNum(s.tread) + "\u00b7" + trimNum(s.nread - 1) + ")";
+    var terms = [
+      {
+        sym: "tao" + D + "(nd+1)",
+        num: trimNum(s.tao) + D + "(" + trimNum(s.nd) + "+1)",
+        val: r.parts.ao
+      },
+      {
+        sym: imagesSym + D + "(trw+thwp)",
+        num: imagesNum + D + "(" + trimNum(s.trw) + "+" + trimNum(s.thwp) + ")",
+        val: r.parts.instr
+      },
+      {
+        sym: imagesSym + D + "coadds" + D + "(itime + tread" + D + "(nread\u22121))",
+        num: imagesNum + D + trimNum(s.coadds) + D + "(" + trimNum(s.itime) + " + " +
+             trimNum(s.tread) + D + trimNum(s.nread - 1) + ")",
+        val: r.parts.read + r.parts.integ
+      }
+    ];
 
-    document.getElementById("eqNum").innerHTML =
-      "T  =  " + a + "   +   " + b + "   +   " + c + "\n" +
-      "   =  " + sec1(r.parts.ao) + "   +   " + sec1(r.parts.instr) + "   +   " +
-      sec1(r.parts.read + r.parts.integ) +
-      '\n   =  <span class="hl">' + sec1(r.total) + " s   =   " + min2(r.total) + " min</span>";
+    var lead = ["T =  ", "   + ", "   + "];
+
+    document.getElementById("eqSym").textContent = terms.map(function (t, i) {
+      return lead[i] + t.sym;
+    }).join("\n");
+
+    var vals = terms.map(function (t) { return sec1(t.val); });
+    var wNum = Math.max.apply(null, terms.map(function (t) { return t.num.length; }));
+    var wVal = Math.max.apply(null, vals.concat([sec1(r.total)]).map(function (v) { return v.length; }));
+
+    var body = terms.map(function (t, i) {
+      return lead[i] + padR(t.num, wNum) + "  =  " + padL(vals[i], wVal) + " s";
+    });
+
+    var gutter = padR("", 5 + wNum + 5);
+    body.push(gutter + rule(wVal + 2));
+    body.push(gutter + padL(sec1(r.total), wVal) + " s");
+
+    var html = body.slice(0, -1).join("\n") + "\n" +
+      '<span class="hl">' + body[body.length - 1] +
+      "   =   " + min2(r.total) + " min</span>";
+
+    document.getElementById("eqNum").innerHTML = html;
   }
 
   function render() {
