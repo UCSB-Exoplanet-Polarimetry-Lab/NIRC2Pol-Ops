@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Numerical validation of the NIRC2-Pol exposure time calculator against the official Keck NIRC2 SNR formula and the HWP cycle timing model.">
+<title>NIRC2-Pol ETC — Validation</title>
+
+<style>
+  :root {
+    --ground:      #E7EAEF;
+    --surface:     #FFFFFF;
+    --surface-sunk:#F1F3F7;
+    --ink:         #12151C;
+    --ink-2:       #3C4453;
+    --muted:       #5B6374;
+    --line:        #D5DAE3;
+    --line-soft:   #E3E7EE;
+    --accent:      #A8341F;
+    --accent-soft: #F6E6E1;
+    --ok:          #1F6D47;
+
+    --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, Georgia, serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --r-card: 10px;
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:      #0D1016;
+      --surface:     #171C24;
+      --surface-sunk:#111620;
+      --ink:         #E3E7EF;
+      --ink-2:       #B7C0CE;
+      --muted:       #8996A8;
+      --line:        #29323F;
+      --line-soft:   #212934;
+      --accent:      #FF7A66;
+      --accent-soft: #2A1A17;
+      --ok:          #63C396;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0D1016;
+    --surface:     #171C24;
+    --surface-sunk:#111620;
+    --ink:         #E3E7EF;
+    --ink-2:       #B7C0CE;
+    --muted:       #8996A8;
+    --line:        #29323F;
+    --line-soft:   #212934;
+    --accent:      #FF7A66;
+    --accent-soft: #2A1A17;
+    --ok:          #63C396;
+    color-scheme: dark;
+  }
+
+  :root[data-theme="light"] {
+    --ground:      #E7EAEF;
+    --surface:     #FFFFFF;
+    --surface-sunk:#F1F3F7;
+    --ink:         #12151C;
+    --ink-2:       #3C4453;
+    --muted:       #5B6374;
+    --line:        #D5DAE3;
+    --line-soft:   #E3E7EE;
+    --accent:      #A8341F;
+    --accent-soft: #F6E6E1;
+    --ok:          #1F6D47;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 20px 72px; }
+
+  .masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 24px;
+    padding: 44px 0 26px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 26px;
+  }
+
+  .masthead-text { flex: 1 1 380px; min-width: 0; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(30px, 4.6vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .masthead nav { flex: 0 0 auto; font-family: var(--font-mono); font-size: 11.5px; display: flex; gap: 16px; }
+  .masthead nav a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 20px;
+    margin-bottom: 22px;
+    min-width: 0;
+  }
+
+  .card > h2 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .card-note { color: var(--muted); font-size: 12.5px; margin: 0 0 18px; max-width: 78ch; }
+
+  .summary {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(24px, 3.4vw, 31px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  .summary.ok { color: var(--ok); }
+  .summary.bad { color: var(--accent); }
+
+  .scroll-x { overflow-x: auto; }
+
+  table.v { width: 100%; border-collapse: collapse; }
+
+  table.v th, table.v td {
+    text-align: right;
+    padding: 7px 0 7px 18px;
+    border-bottom: 1px solid var(--line-soft);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  table.v thead th {
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom-color: var(--line);
+  }
+
+  table.v th.col-name, table.v td.col-name {
+    text-align: left;
+    padding-left: 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    white-space: normal;
+  }
+
+  table.v tbody tr:last-child th, table.v tbody tr:last-child td { border-bottom: 0; }
+
+  .pass { color: var(--ok); font-weight: 600; }
+  .fail { color: var(--accent); font-weight: 600; }
+
+  .colophon {
+    margin-top: 34px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--muted);
+    max-width: 78ch;
+  }
+
+  .colophon a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-text">
+      <p class="eyebrow">Keck II &middot; NIRC2 &middot; polarimetry</p>
+      <h1>ETC Validation</h1>
+    </div>
+    <nav>
+      <a href="./">Calculator</a>
+      <a href="../">All tools</a>
+    </nav>
+  </header>
+
+  <section class="card">
+    <h2>Result</h2>
+    <p class="summary" id="summary">running…</p>
+  </section>
+
+  <section class="card">
+    <h2>Eq. 10 vs the official Keck NIRC2 SNR formula</h2>
+    <p class="card-note">With the dark current and residual starlight terms set to zero,
+      Eq.&nbsp;10 should reduce algebraically to the official Keck expression &mdash; this is
+      the comparison the paper's own validation claim rests on. Pass criterion: ratio within
+      1&nbsp;part in 10<sup>12</sup>.</p>
+    <div class="scroll-x"><table class="v" id="tblOfficial"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Eq. 16 round-trip through Eq. 10</h2>
+    <p class="card-note">Solving Eq.&nbsp;16 for the integration time at a given polarization
+      fraction and threshold, then feeding that time back through Eq.&nbsp;10, must return
+      SNR&nbsp;&times;&nbsp;p&nbsp;=&nbsp;S<sub>min</sub>.</p>
+    <div class="scroll-x"><table class="v" id="tblRoundTrip"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Moffat normalization (Eqs. 3–4)</h2>
+    <p class="card-note">&alpha; is fixed by requiring
+      &int;<sub>0</sub><sup>&infin;</sup>M(r)&nbsp;dr&nbsp;=&nbsp;1, giving
+      &alpha;&nbsp;=&nbsp;(&beta;&minus;1)&radic;&pi;&nbsp;&Gamma;(&beta;&minus;&frac12;)/&Gamma;(&beta;).
+      The quadrature result is compared against that closed form, and the profile is
+      re-integrated to confirm it normalizes to unity.</p>
+    <div class="scroll-x"><table class="v" id="tblMoffat"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Timing model vs the HWP cycle calculator</h2>
+    <p class="card-note">The overhead model here is a port of the one in
+      <a href="../efficiency-calc/" style="color:var(--accent)">efficiency-calc</a>, which is the
+      maintained version. These cases pin the port to figures computed by hand from that model,
+      so a future divergence shows up here rather than silently in a proposal.</p>
+    <div class="scroll-x"><table class="v" id="tblTiming"></table></div>
+  </section>
+
+  <footer class="colophon">
+    <p>Model from Nguyen et&nbsp;al. 2021, Proc. SPIE <strong>11823</strong>, 118231X,
+      <a href="https://doi.org/10.1117/12.2597978">doi:10.1117/12.2597978</a>. Timing model from
+      this repository's <a href="../efficiency-calc/">HWP cycle calculator</a>.</p>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── model under test, mirroring ./index.html ──────────────────────── */
+
+  function scaledZeroPoint(z0, strehl) { return z0 + 2.5 * Math.log10(strehl); }
+  function sourceRate(z0Scaled, mag) { return Math.pow(10, 0.4 * (z0Scaled - mag)); }
+
+  function simpson(f, a, b, n) {
+    n = n || 2000;
+    if (!(b > a)) return 0;
+    var m = n % 2 === 0 ? n : n + 1;
+    var h = (b - a) / m;
+    var s = f(a) + f(b);
+    for (var i = 1; i < m; i++) s += (i % 2 ? 4 : 2) * f(a + i * h);
+    return (s * h) / 3;
+  }
+
+  function moffatAlpha(beta) {
+    var J = simpson(function (t) { return Math.pow(Math.cos(t), 2 * beta - 2); }, 0, Math.PI / 2, 4000);
+    return 2 * (beta - 1) * J;
+  }
+
+  function moffatProfile(r, alpha, beta) {
+    return ((2 * (beta - 1)) / (alpha * alpha)) * Math.pow(1 + Math.pow(r / alpha, 2), -beta);
+  }
+
+  function varianceTerms(p) {
+    return {
+      read: p.readNoise * p.readNoise * p.nPix,
+      dark: p.darkRate * p.nPix * p.tint,
+      sky: p.bgRate * p.gain * p.nPix * p.tint,
+      resid: p.residRate * p.gain * p.nPix * p.tint,
+      source: p.sourceRate * p.tint
+    };
+  }
+
+  function snr(p) {
+    var v = varianceTerms(p);
+    var total = v.read + v.dark + v.sky + v.resid + v.source;
+    if (!(total > 0)) return 0;
+    return (Math.sqrt(p.nExp) * p.sourceRate * p.tint) / Math.sqrt(total);
+  }
+
+  function exposureTimeForPolFraction(p) {
+    if (!(p.polFraction > 0) || !(p.sourceRate > 0) || !(p.nExp > 0)) return Infinity;
+    var p2 = p.polFraction * p.polFraction;
+    var s2 = p.minSnr * p.minSnr;
+    var X = p.nExp * p.sourceRate * p.sourceRate;
+    var Y = -s2 * (p.darkRate * p.nPix + p.bgRate * p.gain * p.nPix +
+                   p.residRate * p.gain * p.nPix + p.sourceRate);
+    var Z = -s2 * p.readNoise * p.readNoise * p.nPix;
+    var disc = Y * Y - 4 * X * p2 * Z;
+    if (!(disc >= 0)) return Infinity;
+    var t = (-Y + Math.sqrt(disc)) / (2 * X * p2);
+    return t > 0 ? t : Infinity;
+  }
+
+  function computeTiming(s) {
+    var images = s.nang * s.nd * s.nf * s.nc;
+    var integ = images * s.coadds * s.itime;
+    var read = images * s.coadds * s.tread * (s.nread - 1);
+    var instr = images * (s.trw + s.thwp);
+    var ao = s.tao * (s.nd + 1);
+    var total = integ + read + instr + ao;
+    return { images: images, integ: integ, read: read, instr: instr, ao: ao,
+             total: total, eff: total > 0 ? integ / total : 0 };
+  }
+
+  var DETECTOR = { readNoise: 56, darkRate: 1e-4, gain: 4 };
+
+  var TABLE2 = {
+    Narrow: {
+      J:  { lambda: 1.248, bg: 0.5,   z0: 26.85, nPix: 78.5 },
+      H:  { lambda: 1.633, bg: 4.0,   z0: 26.94, nPix: 50.2 },
+      K:  { lambda: 2.196, bg: 5.7,   z0: 26.13, nPix: 95.2 },
+      Kp: { lambda: 2.124, bg: 5.6,   z0: 26.24, nPix: 95.2 },
+      Lp: { lambda: 3.776, bg: 18535, z0: 24.70, nPix: 283.5 },
+      Ms: { lambda: 4.670, bg: 18535, z0: 22.70, nPix: 490.8 }
+    },
+    Wide: {
+      J:  { lambda: 1.248, bg: 8.0,     z0: 26.85, nPix: 12.5 },
+      H:  { lambda: 1.633, bg: 64.0,    z0: 26.94, nPix: 12.5 },
+      K:  { lambda: 2.196, bg: 91.2,    z0: 26.13, nPix: 12.5 },
+      Kp: { lambda: 2.124, bg: 89.6,    z0: 26.24, nPix: 12.5 },
+      Lp: { lambda: 3.776, bg: 1256560, z0: 24.70, nPix: 28.4 },
+      Ms: { lambda: 4.670, bg: 1256560, z0: 22.70, nPix: 38.5 }
+    }
+  };
+
+  var FILTER_LABELS = { J: "J", H: "H", K: "K", Kp: "K'", Lp: "L'", Ms: "Ms" };
+
+  function effectiveReadNoise(nReads, scale) {
+    if (scale && nReads > 2) return DETECTOR.readNoise / Math.sqrt(nReads);
+    return DETECTOR.readNoise;
+  }
+
+  /** The official Keck NIRC2 SNR formula, kept solely as a reference. */
+  function officialSnr(c) {
+    var row = TABLE2[c.camera][c.filter];
+    var rNoise = effectiveReadNoise(c.nReads, true);
+    var bg = row.bg * DETECTOR.gain;
+    var mZero = row.z0 + 2.5 * Math.log10(c.strehl);
+    var sig = c.nExp * c.tint * Math.pow(10, 0.4 * (mZero - c.mag));
+    var noise = Math.sqrt(c.nExp * rNoise * rNoise * row.nPix + row.nPix * bg * c.nExp * c.tint + sig);
+    return noise > 0 ? sig / noise : 0;
+  }
+
+  /* Lanczos gamma, for the closed-form alpha only. */
+  function gamma(z) {
+    var g = 7;
+    var C = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+             771.32342877765313, -176.61502916214059, 12.507343278686905,
+             -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+    z -= 1;
+    var x = C[0];
+    for (var i = 1; i < g + 2; i++) x += C[i] / (z + i);
+    var t = z + g + 0.5;
+    return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+  }
+
+  /* ── harness ───────────────────────────────────────────────────────── */
+
+  var failures = 0;
+
+  function verdict(ok) {
+    if (!ok) failures++;
+    return { text: ok ? "PASS" : "FAIL", cls: ok ? "pass" : "fail" };
+  }
+
+  function table(node, headers, rows) {
+    var thead = document.createElement("thead");
+    var htr = document.createElement("tr");
+    headers.forEach(function (h, i) {
+      var th = document.createElement("th");
+      th.innerHTML = h;
+      th.scope = "col";
+      if (i === 0) th.className = "col-name";
+      htr.appendChild(th);
+    });
+    thead.appendChild(htr);
+
+    var tbody = document.createElement("tbody");
+    rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      r.forEach(function (c, i) {
+        var td = document.createElement("td");
+        if (c && typeof c === "object") {
+          td.textContent = c.text;
+          td.className = c.cls;
+        } else {
+          td.textContent = String(c);
+          if (i === 0) td.className = "col-name";
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    node.append(thead, tbody);
+  }
+
+  /* ── 1. Eq. 10 vs official Keck ────────────────────────────────────── */
+
+  var cases = [];
+  ["Narrow", "Wide"].forEach(function (camera) {
+    Object.keys(TABLE2.Narrow).forEach(function (filter) {
+      cases.push({ camera: camera, filter: filter, mag: 15, strehl: 0.36, tint: 10, nExp: 50, nReads: 2 });
+    });
+  });
+  cases.push({ camera: "Narrow", filter: "H", mag: 20, strehl: 0.1, tint: 60, nExp: 1, nReads: 16 });
+  cases.push({ camera: "Wide", filter: "Lp", mag: 8, strehl: 0.78, tint: 0.2, nExp: 2400, nReads: 32 });
+  cases.push({ camera: "Narrow", filter: "Ms", mag: 11.67, strehl: 0.87, tint: 0.2, nExp: 9600, nReads: 128 });
+
+  var rowsOfficial = cases.map(function (c) {
+    var row = TABLE2[c.camera][c.filter];
+    var F = sourceRate(scaledZeroPoint(row.z0, c.strehl), c.mag);
+    var mine = snr({
+      sourceRate: F, tint: c.tint, nExp: c.nExp,
+      readNoise: effectiveReadNoise(c.nReads, true),
+      darkRate: 0, bgRate: row.bg, residRate: 0,
+      gain: DETECTOR.gain, nPix: row.nPix
+    });
+    var ref = officialSnr(c);
+    var ratio = mine / ref;
+    return [c.camera + " " + FILTER_LABELS[c.filter], c.mag, c.strehl, c.tint, c.nExp, c.nReads,
+            mine.toPrecision(10), ref.toPrecision(10), ratio.toFixed(12),
+            verdict(Math.abs(ratio - 1) < 1e-12)];
+  });
+
+  table(document.getElementById("tblOfficial"),
+    ["case", "M", "S", "t (s)", "N<sub>exp</sub>", "N<sub>read</sub>", "Eq. 10", "official", "ratio", ""],
+    rowsOfficial);
+
+  /* ── 2. Eq. 16 round-trip ──────────────────────────────────────────── */
+
+  var rtCases = [
+    { camera: "Narrow", filter: "H", mag: 15, strehl: 0.36, p: 0.001, smin: 10, nExp: 2400 },
+    { camera: "Narrow", filter: "K", mag: 13.11, strehl: 0.53, p: 0.005, smin: 5, nExp: 4800 },
+    { camera: "Wide", filter: "Lp", mag: 11.5, strehl: 0.78, p: 0.02, smin: 3, nExp: 600 },
+    { camera: "Narrow", filter: "J", mag: 18, strehl: 0.21, p: 0.0001, smin: 10, nExp: 48000 }
+  ];
+
+  var rowsRt = rtCases.map(function (c) {
+    var row = TABLE2[c.camera][c.filter];
+    var F = sourceRate(scaledZeroPoint(row.z0, c.strehl), c.mag);
+    var common = {
+      sourceRate: F, nExp: c.nExp, readNoise: DETECTOR.readNoise,
+      darkRate: DETECTOR.darkRate, bgRate: row.bg, residRate: 0,
+      gain: DETECTOR.gain, nPix: row.nPix
+    };
+    var t = exposureTimeForPolFraction(Object.assign({}, common, { polFraction: c.p, minSnr: c.smin }));
+    var back = snr(Object.assign({}, common, { tint: t })) * c.p;
+    return [c.camera + " " + FILTER_LABELS[c.filter], c.mag, (c.p * 100).toPrecision(3) + " %",
+            c.smin, t.toPrecision(8), ((t * c.nExp) / 3600).toPrecision(5),
+            back.toPrecision(12),
+            verdict(Math.abs(back - c.smin) / c.smin < 1e-9)];
+  });
+
+  table(document.getElementById("tblRoundTrip"),
+    ["case", "M", "p", "S<sub>min</sub>", "t (s/coadd)", "on sky (hr)", "recovered SNR·p", ""],
+    rowsRt);
+
+  /* ── 3. Moffat normalization ───────────────────────────────────────── */
+
+  var rowsM = [1.5, 2, 3, 4.765].map(function (beta) {
+    var a = moffatAlpha(beta);
+    var exact = ((beta - 1) * Math.sqrt(Math.PI) * gamma(beta - 0.5)) / gamma(beta);
+    var norm = simpson(function (r) { return moffatProfile(r, a, beta); }, 0, 4000, 40000);
+    return [beta, a.toPrecision(10), exact.toPrecision(10), norm.toPrecision(8),
+            verdict(Math.abs(a / exact - 1) < 1e-6 && Math.abs(norm - 1) < 1e-4)];
+  });
+
+  table(document.getElementById("tblMoffat"),
+    ["&beta;", "&alpha; (quadrature)", "&alpha; (closed form)", "&int;M dr", ""], rowsM);
+
+  /* ── 4. timing model ───────────────────────────────────────────────── */
+
+  /* Expected values computed by hand from the efficiency-calc model:
+     images = nang·nd·nf·nc, integ = images·coadds·itime,
+     read = images·coadds·tread·(nread−1), instr = images·(trw+thwp),
+     ao = tao·(nd+1). The first row is that page's own default setup, which it
+     displays as 26.10 min elapsed at 30.65% efficiency. */
+  var timingCases = [
+    {
+      name: "efficiency-calc defaults",
+      s: { nd: 4, nf: 3, nc: 1, coadds: 50, itime: 0.2, tread: 0.18, nread: 2, tao: 6, trw: 12, thwp: 1, nang: 4 },
+      total: 1566, eff: 30.65
+    },
+    {
+      name: "MCDS-8, sub-array",
+      s: { nd: 4, nf: 3, nc: 1, coadds: 50, itime: 0.2, tread: 0.05, nread: 16, tao: 6, trw: 12, thwp: 1, nang: 4 },
+      total: 2934, eff: 16.36
+    },
+    {
+      name: "single dither, one cycle",
+      s: { nd: 1, nf: 1, nc: 1, coadds: 10, itime: 1, tread: 0.18, nread: 2, tao: 6, trw: 12, thwp: 1, nang: 4 },
+      total: 111.2, eff: 35.97
+    }
+  ];
+
+  var rowsT = timingCases.map(function (c) {
+    var r = computeTiming(c.s);
+    var effPct = r.eff * 100;
+    var ok = Math.abs(r.total - c.total) < 0.05 && Math.abs(effPct - c.eff) < 0.01;
+    return [c.name, r.images, r.total.toFixed(2), c.total.toFixed(2),
+            effPct.toFixed(2) + "%", c.eff.toFixed(2) + "%", verdict(ok)];
+  });
+
+  table(document.getElementById("tblTiming"),
+    ["case", "images", "elapsed (s)", "expected", "efficiency", "expected", ""], rowsT);
+
+  /* ── summary ───────────────────────────────────────────────────────── */
+
+  var total = rowsOfficial.length + rowsRt.length + rowsM.length + rowsT.length;
+  var s = document.getElementById("summary");
+  s.textContent = failures === 0
+    ? "All " + total + " checks pass"
+    : failures + " of " + total + " checks FAILED";
+  s.className = "summary " + (failures === 0 ? "ok" : "bad");
+})();
+</script>
+
+</body>
+</html>

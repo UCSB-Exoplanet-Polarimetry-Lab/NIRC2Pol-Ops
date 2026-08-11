@@ -1,0 +1,1663 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Exposure time calculator for NIRC2-Pol on Keck II: signal-to-noise, and the observing time needed to detect a given polarization fraction.">
+<title>NIRC2-Pol Exposure Time Calculator</title>
+
+<style>
+  /* ─── tokens ─────────────────────────────────────────────────────────── */
+  /* Kept in step with ../index.html and ../efficiency-calc/index.html so the
+     published tools read as one site. */
+  :root {
+    --ground:      #E7EAEF;
+    --surface:     #FFFFFF;
+    --surface-sunk:#F1F3F7;
+    --ink:         #12151C;
+    --ink-2:       #3C4453;
+    --muted:       #5B6374;
+    --line:        #D5DAE3;
+    --line-soft:   #E3E7EE;
+    --accent:      #A8341F;
+    --accent-soft: #F6E6E1;
+    --focus:       #A8341F;
+
+    --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, Georgia, serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --r-card: 10px;
+    --r-field: 7px;
+
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:      #0D1016;
+      --surface:     #171C24;
+      --surface-sunk:#111620;
+      --ink:         #E3E7EF;
+      --ink-2:       #B7C0CE;
+      --muted:       #8996A8;
+      --line:        #29323F;
+      --line-soft:   #212934;
+      --accent:      #FF7A66;
+      --accent-soft: #2A1A17;
+      --focus:       #FF7A66;
+    }
+  }
+
+  /* the viewer's toggle must win over the media query in both directions */
+  :root[data-theme="dark"] {
+    --ground:      #0D1016;
+    --surface:     #171C24;
+    --surface-sunk:#111620;
+    --ink:         #E3E7EF;
+    --ink-2:       #B7C0CE;
+    --muted:       #8996A8;
+    --line:        #29323F;
+    --line-soft:   #212934;
+    --accent:      #FF7A66;
+    --accent-soft: #2A1A17;
+    --focus:       #FF7A66;
+    color-scheme: dark;
+  }
+
+  :root[data-theme="light"] {
+    --ground:      #E7EAEF;
+    --surface:     #FFFFFF;
+    --surface-sunk:#F1F3F7;
+    --ink:         #12151C;
+    --ink-2:       #3C4453;
+    --muted:       #5B6374;
+    --line:        #D5DAE3;
+    --line-soft:   #E3E7EE;
+    --accent:      #A8341F;
+    --accent-soft: #F6E6E1;
+    --focus:       #A8341F;
+    color-scheme: light;
+  }
+
+  /* ─── base ───────────────────────────────────────────────────────────── */
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 20px 72px;
+  }
+
+  /* ─── header ─────────────────────────────────────────────────────────── */
+  .masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 24px;
+    padding: 44px 0 26px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 26px;
+  }
+
+  .masthead-text { flex: 1 1 380px; min-width: 0; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(30px, 4.6vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .masthead nav {
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    display: flex;
+    gap: 16px;
+  }
+
+  .masthead nav a {
+    color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  /* ─── layout ─────────────────────────────────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .col-in { display: grid; gap: 22px; }
+  .col-out { display: grid; gap: 22px; }
+
+  /* ─── cards ──────────────────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 20px;
+    min-width: 0;
+  }
+
+  .card > h2 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .card-note {
+    color: var(--muted);
+    font-size: 12.5px;
+    margin: 0 0 18px;
+  }
+
+  .fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0 0 22px;
+    display: grid;
+    gap: 14px;
+  }
+
+  .fieldset:last-of-type { margin-bottom: 0; }
+
+  .fieldset > legend {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 0 0 10px;
+    margin: 0;
+    float: left;
+    width: 100%;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .fieldset > legend + * { margin-top: 12px; }
+
+  /* ─── fields ─────────────────────────────────────────────────────────── */
+  .field { display: grid; gap: 5px; min-width: 0; }
+
+  .field > label {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+
+  .field .hint {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .control { display: flex; align-items: stretch; gap: 6px; }
+
+  input[type="number"], select {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-field);
+    padding: 8px 10px;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  select { font-family: var(--font-ui); appearance: auto; }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input:focus-visible, select:focus-visible,
+  button:focus-visible, summary:focus-visible, a:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  input[type="number"][aria-invalid="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .step {
+    flex: 0 0 auto;
+    width: 32px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1;
+    color: var(--ink-2);
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-field);
+    cursor: pointer;
+  }
+
+  .step:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+  .unit {
+    flex: 0 0 auto;
+    align-self: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .check {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+
+  .check input {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 3px 0 0;
+    accent-color: var(--accent);
+  }
+
+  /* segmented presets */
+  .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+
+  .preset {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 9px;
+    cursor: pointer;
+  }
+
+  .preset:hover { color: var(--accent); border-color: var(--accent); }
+
+  .preset[aria-pressed="true"] {
+    color: var(--surface);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* ─── advanced disclosure ────────────────────────────────────────────── */
+  details.adv {
+    border-top: 1px solid var(--line-soft);
+    margin-top: 20px;
+    padding-top: 14px;
+  }
+
+  details.adv > summary {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  details.adv > summary::-webkit-details-marker { display: none; }
+
+  details.adv > summary::before {
+    content: "+";
+    font-size: 13px;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  details.adv[open] > summary::before { content: "\2212"; }
+
+  details.adv > summary:hover { color: var(--accent); }
+
+  .adv-body { display: grid; gap: 14px; margin-top: 16px; }
+
+  /* ─── readout tiles ──────────────────────────────────────────────────── */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    overflow: hidden;
+  }
+
+  @media (max-width: 560px) {
+    .tiles { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .tile { background: var(--surface); padding: 18px 20px; min-width: 0; }
+
+  .tile-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+
+  .tile-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(24px, 3.4vw, 31px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+  }
+
+  .tile.lead .tile-value { color: var(--accent); }
+
+  .tile-value .u { font-size: 14px; letter-spacing: 0; color: var(--muted); }
+
+  .tile-sub {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin: 8px 0 0;
+  }
+
+  .verdict {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 8px 0 0;
+  }
+
+  .verdict.yes { color: var(--accent); }
+  .verdict.no  { color: var(--muted); }
+
+  /* ─── tables ─────────────────────────────────────────────────────────── */
+  .ledger { width: 100%; border-collapse: collapse; }
+
+  .ledger caption {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+  }
+
+  .ledger th, .ledger td {
+    text-align: right;
+    padding: 7px 0 7px 18px;
+    border-bottom: 1px solid var(--line-soft);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  .ledger tbody th {
+    text-align: left;
+    font-weight: 400;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    width: 99%;
+    white-space: normal;
+    padding-left: 0;
+  }
+
+  .ledger thead th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom-color: var(--line);
+  }
+
+  .ledger thead th.col-name { text-align: left; width: 99%; padding-left: 0; }
+
+  .ledger tbody tr:last-child th,
+  .ledger tbody tr:last-child td { border-bottom: 0; }
+
+  .ledger tr.dominant th, .ledger tr.dominant td { color: var(--accent); }
+
+  /* ─── charts ─────────────────────────────────────────────────────────── */
+  .plots { display: grid; gap: 22px; }
+
+  .plot-box { overflow-x: auto; }
+
+  .chart { width: 100%; height: auto; display: block; }
+
+  .chart-title { fill: var(--ink); font-size: 12.5px; font-family: var(--font-ui); font-weight: 600; }
+  .chart-empty { fill: var(--muted); font-size: 12.5px; font-family: var(--font-ui); }
+  .tick { fill: var(--muted); font-size: 10px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .axis-label { fill: var(--muted); font-size: 11px; font-family: var(--font-ui); }
+  .readout { fill: var(--ink); font-size: 10.5px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .gridline { stroke: var(--line-soft); stroke-width: 1; }
+  .axisline { stroke: var(--line); stroke-width: 1.25; }
+  .marker { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+  .threshold { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+
+  /* ─── equation ───────────────────────────────────────────────────────── */
+  .eq { display: grid; gap: 12px; }
+
+  .eq-row { overflow-x: auto; padding-bottom: 2px; }
+
+  .eq-row code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: pre;
+    display: block;
+  }
+
+  .eq-sym code { color: var(--muted); }
+  .eq-num code { color: var(--ink); }
+  .eq-num .hl { color: var(--accent); }
+
+  .eq-legend {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 4px 0 0;
+    padding-left: 18px;
+  }
+
+  .eq-legend li { margin-bottom: 3px; }
+
+  /* ─── notes ──────────────────────────────────────────────────────────── */
+  .notes ol { padding-left: 18px; margin: 0; font-size: 13px; color: var(--muted); }
+  .notes li { margin-bottom: 11px; }
+  .notes li:last-child { margin-bottom: 0; }
+  .notes strong { color: var(--ink-2); font-weight: 600; }
+
+  /* ─── mobile summary rail ────────────────────────────────────────────── */
+  .rail {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    gap: 18px;
+    align-items: baseline;
+    padding: 10px 20px;
+    margin: 0 -20px 18px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  .rail b { color: var(--accent); font-weight: 600; font-size: 15px; }
+  .rail span { color: var(--ink); }
+
+  @media (max-width: 900px) { .rail { display: flex; } }
+
+  /* ─── footer ─────────────────────────────────────────────────────────── */
+  .colophon {
+    margin-top: 34px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--muted);
+    max-width: 78ch;
+  }
+
+  .colophon a {
+    color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  .colophon p { margin: 0 0 9px; }
+  .colophon p:last-child { margin-bottom: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-text">
+      <p class="eyebrow">Keck II &middot; NIRC2 &middot; polarimetry</p>
+      <h1>Exposure Time Calculator</h1>
+    </div>
+    <nav>
+      <a href="../">All tools</a>
+      <a href="../efficiency-calc/">HWP cycle timing</a>
+      <a href="validation.html">Validation</a>
+    </nav>
+  </header>
+
+  <div class="rail">
+    <span>SNR <b id="railSnr">&mdash;</b></span>
+    <span>To threshold <b id="railTime">&mdash;</b> hr</span>
+  </div>
+
+  <div class="grid">
+
+    <!-- ── inputs ───────────────────────────────────────────────────── -->
+    <div class="col-in">
+
+      <section class="card">
+        <h2>Target</h2>
+        <p class="card-note">Every value updates the readout immediately.</p>
+
+        <fieldset class="fieldset">
+          <legend>Source</legend>
+
+          <div class="field">
+            <label for="preset">Preset companion</label>
+            <div class="control">
+              <select id="preset"><option value="">&mdash; enter magnitude manually &mdash;</option></select>
+            </div>
+            <p class="hint">Fills the magnitude from published photometry. Check the literature
+              before using one in a proposal.</p>
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="mag">Magnitude</label>
+              <div class="control"><input type="number" id="mag" min="-5" step="0.01" value="15"></div>
+            </div>
+            <div class="field">
+              <label for="filter">Filter</label>
+              <div class="control"><select id="filter"></select></div>
+            </div>
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="camera">Camera</label>
+              <div class="control">
+                <select id="camera">
+                  <option value="Narrow" selected>Narrow</option>
+                  <option value="Wide">Wide</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="strehl">Strehl ratio</label>
+              <div class="control"><input type="number" id="strehl" min="0.001" max="1" step="0.01" value="0.36"></div>
+            </div>
+          </div>
+          <p class="hint">Strehl scales the photometric zeropoint as Z&#8320;&prime; =
+            Z&#8320; + 2.5&nbsp;log&#8321;&#8320;&nbsp;S. Changing filter loads a typical Keck AO
+            value for that band.</p>
+        </fieldset>
+      </section>
+
+      <section class="card">
+        <h2>Observing setup</h2>
+        <p class="card-note">The same timing model as the
+          <a href="../efficiency-calc/" style="color:var(--accent)">HWP cycle calculator</a>.</p>
+
+        <fieldset class="fieldset">
+          <legend>Cadence</legend>
+
+          <div class="field">
+            <label for="nd">Dither positions</label>
+            <div class="control">
+              <button class="step" type="button" data-step="-1" data-target="nd" aria-label="Decrease dither positions">&minus;</button>
+              <input type="number" id="nd" min="1" step="1" value="4">
+              <button class="step" type="button" data-step="1" data-target="nd" aria-label="Increase dither positions">+</button>
+            </div>
+            <p class="hint">Telescope offsets in the pattern. Each move costs AO overhead.</p>
+          </div>
+
+          <div class="field">
+            <label for="nf">Frames per HWP angle</label>
+            <div class="control">
+              <button class="step" type="button" data-step="-1" data-target="nf" aria-label="Decrease frames per HWP angle">&minus;</button>
+              <input type="number" id="nf" min="1" step="1" value="3">
+              <button class="step" type="button" data-step="1" data-target="nf" aria-label="Increase frames per HWP angle">+</button>
+            </div>
+            <p class="hint">Exposures at each angle before the plate moves on.</p>
+          </div>
+
+          <div class="field">
+            <label for="nc">HWP cycles per dither</label>
+            <div class="control">
+              <button class="step" type="button" data-step="-1" data-target="nc" aria-label="Decrease HWP cycles per dither">&minus;</button>
+              <input type="number" id="nc" min="1" step="1" value="1">
+              <button class="step" type="button" data-step="1" data-target="nc" aria-label="Increase HWP cycles per dither">+</button>
+            </div>
+            <p class="hint">Complete 0&deg; &rarr; 45&deg; &rarr; 22.5&deg; &rarr; 67.5&deg;
+              sequences at each dither position.</p>
+          </div>
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>Detector</legend>
+
+          <div class="field">
+            <label for="coadds">Coadds per image</label>
+            <div class="control">
+              <button class="step" type="button" data-step="-1" data-target="coadds" aria-label="Decrease coadds">&minus;</button>
+              <input type="number" id="coadds" min="1" step="1" value="50">
+              <button class="step" type="button" data-step="1" data-target="coadds" aria-label="Increase coadds">+</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="itime">Integration per coadd &mdash; <span class="mono">itime</span></label>
+            <div class="control">
+              <input type="number" id="itime" min="0" step="0.01" value="0.2">
+              <span class="unit">sec</span>
+            </div>
+            <p class="hint">This is the exposure time t in the SNR expression.</p>
+          </div>
+
+          <div class="field">
+            <label for="tread">Readout time &mdash; <span class="mono">tread</span></label>
+            <div class="control">
+              <input type="number" id="tread" min="0" step="0.01" value="0.18">
+              <span class="unit">sec</span>
+            </div>
+            <div class="presets" id="treadPresets">
+              <button class="preset" type="button" data-for="tread" data-val="0.18">Full array 1024&times;1024</button>
+              <button class="preset" type="button" data-for="tread" data-val="0.05">Sub-array 512&times;512</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="nread">Number of reads &mdash; <span class="mono">nread</span></label>
+            <div class="control">
+              <button class="step" type="button" data-step="-1" data-target="nread" aria-label="Decrease number of reads">&minus;</button>
+              <input type="number" id="nread" min="1" step="1" value="2">
+              <button class="step" type="button" data-step="1" data-target="nread" aria-label="Increase number of reads">+</button>
+            </div>
+            <div class="presets" id="nreadPresets">
+              <button class="preset" type="button" data-for="nread" data-val="2">CDS</button>
+              <button class="preset" type="button" data-for="nread" data-val="6">MCDS-3</button>
+              <button class="preset" type="button" data-for="nread" data-val="16">MCDS-8</button>
+            </div>
+            <p class="hint">Only <span class="mono">nread &minus; 1</span> reads are charged in the
+              timing &mdash; the first is absorbed by the integration.</p>
+          </div>
+        </fieldset>
+
+        <details class="adv">
+          <summary>Overhead constants</summary>
+          <div class="adv-body">
+            <div class="field">
+              <label for="tao">AO overhead per dither move</label>
+              <div class="control">
+                <input type="number" id="tao" min="0" step="0.5" value="6">
+                <span class="unit">sec</span>
+              </div>
+              <p class="hint">Open loops, slew, reposition FSMs and FCS, close TT and DM loops.
+                Charged <span class="mono">nd + 1</span> times.</p>
+            </div>
+
+            <div class="field">
+              <label for="trw">Image read and write</label>
+              <div class="control">
+                <input type="number" id="trw" min="0" step="0.5" value="12">
+                <span class="unit">sec</span>
+              </div>
+              <p class="hint">Reading out a NIRC2 frame and writing it with full FITS headers.</p>
+            </div>
+
+            <div class="field">
+              <label for="thwp">HWP rotation command</label>
+              <div class="control">
+                <input type="number" id="thwp" min="0" step="0.5" value="1">
+                <span class="unit">sec</span>
+              </div>
+              <p class="hint">The stage itself is quick; this is command processing and dispatch.</p>
+            </div>
+
+            <div class="field">
+              <label for="nang">HWP angles per cycle</label>
+              <div class="control">
+                <button class="step" type="button" data-step="-1" data-target="nang" aria-label="Decrease HWP angles per cycle">&minus;</button>
+                <input type="number" id="nang" min="1" step="1" value="4">
+                <button class="step" type="button" data-step="1" data-target="nang" aria-label="Increase HWP angles per cycle">+</button>
+              </div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2>Polarimetry</h2>
+        <p class="card-note">The polarized signal is what sets the integration time.</p>
+
+        <fieldset class="fieldset">
+          <legend>Detection</legend>
+
+          <div class="field">
+            <label for="polfrac">Polarization fraction</label>
+            <div class="control">
+              <input type="number" id="polfrac" min="0" step="any" value="0.1">
+              <span class="unit">%</span>
+            </div>
+            <div class="presets" id="polPresets"></div>
+            <p class="hint">Directly imaged companions typically sit below 0.1%. Models predict up
+              to 2% for cloudy, oblate objects.</p>
+          </div>
+
+          <div class="field">
+            <label for="minsnr">Threshold on SNR<sub>pol</sub></label>
+            <div class="control"><input type="number" id="minsnr" min="0.1" step="any" value="10"></div>
+            <p class="hint">SNR<sub>pol</sub> = SNR &times; p. The calculator solves for the
+              integration that reaches this.</p>
+          </div>
+        </fieldset>
+
+        <details class="adv">
+          <summary>Residual starlight</summary>
+          <div class="adv-body">
+            <p class="hint">Photon noise from the (1&nbsp;&minus;&nbsp;S) fraction of starlight the
+              coronagraph did not reject, modelled as a Moffat profile integrated over an annulus
+              at the companion. Speckle noise itself is assumed removed by polarimetric
+              differential imaging.</p>
+
+            <label class="check">
+              <input type="checkbox" id="useResid" checked>
+              <span>Include the residual starlight term</span>
+            </label>
+
+            <div class="row-2">
+              <div class="field">
+                <label for="sep">Separation r&#8320;</label>
+                <div class="control">
+                  <input type="number" id="sep" min="0" step="any" value="5">
+                  <span class="unit">&lambda;/D</span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="dr">Annulus &delta;r</label>
+                <div class="control">
+                  <input type="number" id="dr" min="0.01" step="any" value="1">
+                  <span class="unit">&lambda;/D</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="beta">Moffat &beta;</label>
+              <div class="control"><input type="number" id="beta" min="1.01" step="any" value="2"></div>
+              <p class="hint" id="alphaNote"></p>
+            </div>
+
+            <label class="check">
+              <input type="checkbox" id="scaleRead" checked>
+              <span>Scale read noise by 1/&radic;<span class="mono">nread</span> above two reads
+                &mdash; official Keck behaviour. Unchecked holds the paper's literal
+                56&nbsp;e&#8315;/px.</span>
+            </label>
+          </div>
+        </details>
+      </section>
+
+    </div>
+
+    <!-- ── outputs ──────────────────────────────────────────────────── -->
+    <div class="col-out">
+
+      <div class="tiles">
+        <div class="tile lead">
+          <p class="tile-label">Signal to noise</p>
+          <div class="tile-value"><span id="outSnr">&mdash;</span></div>
+          <p class="tile-sub" id="outSnrSub">&nbsp;</p>
+        </div>
+        <div class="tile">
+          <p class="tile-label">Polarized SNR</p>
+          <div class="tile-value"><span id="outPol">&mdash;</span></div>
+          <p class="verdict" id="outVerdict">&nbsp;</p>
+        </div>
+        <div class="tile">
+          <p class="tile-label">Elapsed to threshold</p>
+          <div class="tile-value"><span id="outTime">&mdash;</span><span class="u">hr</span></div>
+          <p class="tile-sub" id="outTimeSub">&nbsp;</p>
+        </div>
+      </div>
+
+      <section class="card">
+        <table class="ledger">
+          <caption>Noise budget, one coadd</caption>
+          <thead>
+            <tr>
+              <th class="col-name" scope="col">Term</th>
+              <th scope="col">Variance (e&#8315;&sup2;)</th>
+              <th scope="col">Share</th>
+            </tr>
+          </thead>
+          <tbody id="budget"></tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <table class="ledger">
+          <caption>Time budget</caption>
+          <thead>
+            <tr>
+              <th class="col-name" scope="col">Component</th>
+              <th scope="col">sec</th>
+              <th scope="col">min</th>
+              <th scope="col">%</th>
+            </tr>
+          </thead>
+          <tbody id="timing"></tbody>
+        </table>
+      </section>
+
+      <div class="plots">
+        <section class="card plot-box" id="plotSnr"></section>
+        <section class="card plot-box" id="plotPol"></section>
+        <section class="card plot-box" id="plotResid"></section>
+      </div>
+
+      <section class="card">
+        <h2>Working</h2>
+        <p class="card-note">Eq. 10 evaluated at the current inputs.</p>
+        <div class="eq">
+          <div class="eq-row eq-sym"><code>SNR = &radic;N_exp &middot; (F&middot;t) / &radic;( R&sup2;n + D&middot;n&middot;t + B&middot;G&middot;n&middot;t + K&middot;G&middot;n&middot;t + F&middot;t )</code></div>
+          <div class="eq-row eq-num"><code id="eqNum"></code></div>
+        </div>
+        <ul class="eq-legend">
+          <li>t &mdash; <span class="mono">itime</span>; N_exp &mdash;
+            <span class="mono">nang&middot;nd&middot;nf&middot;nc&middot;coadds</span>, so
+            N_exp&middot;t is exactly the on-sky integration</li>
+          <li>F &mdash; source rate 10<sup>0.4(Z&#8320;&prime;&minus;M)</sup>, e&#8315;/s</li>
+          <li>R, D, B, K &mdash; read noise, dark current, sky background, residual starlight</li>
+          <li>n &mdash; aperture area in px; G &mdash; gain, 4 e&#8315;/count</li>
+        </ul>
+      </section>
+
+      <section class="card notes">
+        <h2>Model notes</h2>
+        <p class="card-note">Implemented as printed in the paper. Where it is internally
+          inconsistent or under-specified, the behaviour is reproduced and named here rather than
+          silently corrected.</p>
+        <ol>
+          <li><strong>Timing model.</strong> Overheads come from the NIRC2-Pol timing model used by
+            the HWP cycle calculator, not from the 2021 paper's port of the generic Keck NIRC2
+            calculator. It is HWP-aware and current.</li>
+          <li><strong>Gain double-conversion.</strong> Eq.&nbsp;10 multiplies N<sub>resid</sub> by
+            the gain to convert counts to electrons, but N<sub>resid</sub> descends from a quantity
+            Eq.&nbsp;2 already gives in e&#8315;/s, so the term is inflated by G&nbsp;=&nbsp;4. The
+            checkbox turns it off entirely.</li>
+          <li><strong>Radial, not areal, normalization.</strong> The 2(&beta;&minus;1)/&alpha;&sup2;
+            prefactor normalizes &int;M(r)&nbsp;dr&nbsp;=&nbsp;1, not
+            &int;M(r)&nbsp;2&pi;r&nbsp;dr&nbsp;=&nbsp;1. That fixes &alpha;&nbsp;=&nbsp;(&beta;&minus;1)&radic;&pi;&nbsp;&Gamma;(&beta;&minus;&frac12;)/&Gamma;(&beta;),
+            so &beta; is the only free shape parameter.</li>
+          <li><strong>Separation is an implicit input.</strong> N<sub>resid</sub> depends on
+            r&#8320;, which Sec.&nbsp;2 omits from its list of ETC inputs.</li>
+          <li><strong>Mixed angular units.</strong> Eq.&nbsp;6 measures r in &lambda;/D but gives
+            the default annulus width as 10&nbsp;px. Both are entered in &lambda;/D here, with the
+            pixel equivalent shown.</li>
+          <li><strong>No Medium camera.</strong> Table&nbsp;2 lists only Narrow and Wide.</li>
+          <li><strong>No instrumental polarization or polarimetric efficiency.</strong> Excluded by
+            Sec.&nbsp;2.3 as ~0.1% and uncharacterized. SNR<sub>pol</sub> is simply
+            SNR&nbsp;&times;&nbsp;p.</li>
+          <li><strong>No confidence intervals.</strong> Sec.&nbsp;2 states the ETC has no way to
+            estimate them.</li>
+        </ol>
+      </section>
+
+    </div>
+  </div>
+
+  <footer class="colophon">
+    <p>The signal-to-noise model implements Nguyen, M.&nbsp;M., Jensen-Clem, R.,
+      Millar-Blanchaer, M.&nbsp;A., Mukherjee, S., Skemer, A. &amp; Wang, J. 2021, &ldquo;An
+      exposure time calculator for high-contrast polarimeters,&rdquo; Proc. SPIE
+      <strong>11823</strong>, 118231X,
+      <a href="https://doi.org/10.1117/12.2597978">doi:10.1117/12.2597978</a>. Instrument
+      constants are that paper's Table&nbsp;2 and preset photometry comes from the authors'
+      reference implementation, <a href="https://github.com/meiji274/HCI-ETC">meiji274/HCI-ETC</a>.
+      Overheads use this repository's own NIRC2-Pol timing model.</p>
+    <p>Eq.&nbsp;10 reduces exactly to the official Keck NIRC2 SNR formula once the dark current
+      and residual starlight terms are zeroed &mdash; see the
+      <a href="validation.html">validation page</a>.</p>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ═══ signal-to-noise model ════════════════════════════════════════════
+   *
+   * Nguyen et al. 2021, SPIE 11823, 118231X. Equation numbers refer to that
+   * paper. These are small standalone functions of their arguments -- no DOM,
+   * no shared state -- so they can be lifted out and driven directly.
+   * Assumptions and failure modes are stated per function.
+   */
+
+  /** Eq. 1 -- zeropoint scaled by Strehl. S <= 0 yields -Infinity, which
+   *  propagates to a source rate of 0 rather than throwing. */
+  function scaledZeroPoint(z0, strehl) {
+    return z0 + 2.5 * Math.log10(strehl);
+  }
+
+  /** Eq. 2 -- source rate in e-/s. The zeropoint already encodes throughput,
+   *  so the paper's Q = 0.8 never enters Eqs. 9-10 and is not applied. */
+  function sourceRate(z0Scaled, mag) {
+    return Math.pow(10, 0.4 * (z0Scaled - mag));
+  }
+
+  /** Simpson-rule quadrature over [a, b]; n is forced even. Returns 0 unless
+   *  b > a. */
+  function simpson(f, a, b, n) {
+    n = n || 2000;
+    if (!(b > a)) return 0;
+    var m = n % 2 === 0 ? n : n + 1;
+    var h = (b - a) / m;
+    var s = f(a) + f(b);
+    for (var i = 1; i < m; i++) s += (i % 2 ? 4 : 2) * f(a + i * h);
+    return (s * h) / 3;
+  }
+
+  /** Eq. 4 -- the Moffat scale parameter implied by the normalization.
+   *
+   *  The paper says alpha follows from requiring the integral of Eq. 3 to be
+   *  unity but never gives it. Substituting u = r/alpha yields
+   *  alpha = 2(beta-1)J(beta) with J(beta) = int_0^inf (1+u^2)^-beta du, i.e.
+   *  (beta-1)sqrt(pi)Gamma(beta-1/2)/Gamma(beta). J is evaluated under
+   *  u = tan(theta), which leaves the elementary integrand cos^(2beta-2)theta
+   *  on a finite domain -- integrating in u over a truncated range instead
+   *  leaves a tail error of U^(1-2beta)/(2beta-1), which is 3.1e-6 at
+   *  beta = 1.5, U = 400.
+   *
+   *  beta must exceed 1; below that alpha is non-positive and the profile is
+   *  meaningless. Callers clamp it.
+   */
+  function moffatAlpha(beta) {
+    var J = simpson(function (t) { return Math.pow(Math.cos(t), 2 * beta - 2); }, 0, Math.PI / 2, 4000);
+    return 2 * (beta - 1) * J;
+  }
+
+  /** Eq. 3 -- circular Moffat radial profile, normalized so int M dr = 1 in
+   *  one dimension (not the areal int M 2*pi*r dr), as the paper's prefactor
+   *  gives. r and alpha in lambda/D. */
+  function moffatProfile(r, alpha, beta) {
+    return ((2 * (beta - 1)) / (alpha * alpha)) * Math.pow(1 + Math.pow(r / alpha, 2), -beta);
+  }
+
+  /** Eqs. 5-6 -- residual starlight at the companion's separation.
+   *
+   *  The inner edge is clamped at r = 0, so an annulus straddling the star
+   *  returns the enclosed profile rather than folding negative radii.
+   *  deltaR <= 0 returns 0.
+   */
+  function residualStarlightRate(sourceTotRate, strehl, r0, deltaR, beta) {
+    var alpha = moffatAlpha(beta);
+    var rIn = Math.max(0, r0 - deltaR / 2);
+    var frac = simpson(function (r) { return moffatProfile(r, alpha, beta); }, rIn, r0 + deltaR / 2, 2000);
+    return sourceTotRate * (1 - strehl) * frac;
+  }
+
+  /** The five variance terms of Eq. 10, in e-^2, for one exposure. Returned
+   *  separately so the noise budget can show which one dominates. */
+  function varianceTerms(p) {
+    return {
+      read: p.readNoise * p.readNoise * p.nPix,
+      dark: p.darkRate * p.nPix * p.tint,
+      sky: p.bgRate * p.gain * p.nPix * p.tint,
+      resid: p.residRate * p.gain * p.nPix * p.tint,
+      source: p.sourceRate * p.tint
+    };
+  }
+
+  /** Eq. 10 -- companion SNR. All terms are added in quadrature; every term
+   *  except read noise is time-dependent shot noise. With darkRate = 0 and
+   *  residRate = 0 this reduces algebraically to the official Keck NIRC2
+   *  formula. Returns 0 when the variance is non-positive. */
+  function snr(p) {
+    var v = varianceTerms(p);
+    var total = v.read + v.dark + v.sky + v.resid + v.source;
+    if (!(total > 0)) return 0;
+    return (Math.sqrt(p.nExp) * p.sourceRate * p.tint) / Math.sqrt(total);
+  }
+
+  /** Eq. 12 -- polarized SNR. No polarimetric efficiency factor: the paper
+   *  excludes instrumental polarization in Sec. 2.3. */
+  function polSnr(totalSnr, polFraction) {
+    return totalSnr * polFraction;
+  }
+
+  /** Eqs. 13-16 -- integration time per exposure to reach a polarized-SNR
+   *  threshold.
+   *
+   *  Substituting Eq. 12 into Eq. 10 and clearing the radicals gives a
+   *  quadratic in t, 0 = X p^2 t^2 + Y t + Z; the physical root is
+   *  t = (-Y + sqrt(Y^2 - 4 X p^2 Z)) / (2 X p^2). Note 10^(0.8(Z0'-M)) is
+   *  exactly F^2.
+   *
+   *  Returns Infinity when p <= 0, the source rate is 0, or the discriminant
+   *  goes negative -- the threshold is unreachable, which is the honest
+   *  answer rather than NaN.
+   */
+  function exposureTimeForPolFraction(p) {
+    if (!(p.polFraction > 0) || !(p.sourceRate > 0) || !(p.nExp > 0)) return Infinity;
+    var p2 = p.polFraction * p.polFraction;
+    var s2 = p.minSnr * p.minSnr;
+    var X = p.nExp * p.sourceRate * p.sourceRate;
+    var Y = -s2 * (p.darkRate * p.nPix + p.bgRate * p.gain * p.nPix +
+                   p.residRate * p.gain * p.nPix + p.sourceRate);
+    var Z = -s2 * p.readNoise * p.readNoise * p.nPix;
+    var disc = Y * Y - 4 * X * p2 * Z;
+    if (!(disc >= 0)) return Infinity;
+    var t = (-Y + Math.sqrt(disc)) / (2 * X * p2);
+    return t > 0 ? t : Infinity;
+  }
+
+  /* ═══ timing model ═════════════════════════════════════════════════════
+   *
+   * Ported verbatim from ../efficiency-calc/index.html, which is the current
+   * NIRC2-Pol timing model. Do not substitute the generic Keck NIRC2 overhead
+   * model from the 2021 paper -- this one is HWP-aware and maintained here.
+   */
+
+  var SEGMENTS = [
+    { key: "integ", name: "On-sky integration" },
+    { key: "read", name: "Detector readout" },
+    { key: "instr", name: "Image read/write + HWP moves" },
+    { key: "ao", name: "AO recovery after dithers" }
+  ];
+
+  /** Total elapsed time and efficiency for one observing setup.
+   *
+   *  images = nang·nd·nf·nc, and only nread-1 reads are charged because the
+   *  first is absorbed by the integration. Returns seconds throughout;
+   *  eff is a fraction, not a percentage. */
+  function computeTiming(s) {
+    var images = s.nang * s.nd * s.nf * s.nc;
+    var integ = images * s.coadds * s.itime;
+    var read = images * s.coadds * s.tread * (s.nread - 1);
+    var instr = images * (s.trw + s.thwp);
+    var ao = s.tao * (s.nd + 1);
+    var total = integ + read + instr + ao;
+    return {
+      images: images,
+      parts: { integ: integ, read: read, instr: instr, ao: ao },
+      total: total,
+      integ: integ,
+      eff: total > 0 ? integ / total : 0
+    };
+  }
+
+  /* ═══ instrument constants ═════════════════════════════════════════════ */
+
+  /* Hard-coded by the paper (Sec. 2). */
+  var DETECTOR = { readNoise: 56, darkRate: 1e-4, gain: 4 };
+
+  var TELESCOPE_DIAMETER = 10;                          // m, Table 1
+  var PLATE_SCALE = { Narrow: 9.942, Wide: 39.686 };    // mas/px
+
+  /* Table 2 -- central wavelength (micron), sky background (counts/s/px),
+     zeropoint at Strehl = 1, aperture area (px). Only Narrow and Wide are
+     tabulated; there is no Medium row. */
+  var TABLE2 = {
+    Narrow: {
+      J:  { lambda: 1.248, bg: 0.5,   z0: 26.85, nPix: 78.5 },
+      H:  { lambda: 1.633, bg: 4.0,   z0: 26.94, nPix: 50.2 },
+      K:  { lambda: 2.196, bg: 5.7,   z0: 26.13, nPix: 95.2 },
+      Kp: { lambda: 2.124, bg: 5.6,   z0: 26.24, nPix: 95.2 },
+      Lp: { lambda: 3.776, bg: 18535, z0: 24.70, nPix: 283.5 },
+      Ms: { lambda: 4.670, bg: 18535, z0: 22.70, nPix: 490.8 }
+    },
+    Wide: {
+      J:  { lambda: 1.248, bg: 8.0,     z0: 26.85, nPix: 12.5 },
+      H:  { lambda: 1.633, bg: 64.0,    z0: 26.94, nPix: 12.5 },
+      K:  { lambda: 2.196, bg: 91.2,    z0: 26.13, nPix: 12.5 },
+      Kp: { lambda: 2.124, bg: 89.6,    z0: 26.24, nPix: 12.5 },
+      Lp: { lambda: 3.776, bg: 1256560, z0: 24.70, nPix: 28.4 },
+      Ms: { lambda: 4.670, bg: 1256560, z0: 22.70, nPix: 38.5 }
+    }
+  };
+
+  var FILTER_LABELS = { J: "J", H: "H", K: "K", Kp: "K'", Lp: "L'", Ms: "Ms" };
+  var TYPICAL_STREHL = { J: 0.21, H: 0.36, K: 0.53, Kp: 0.53, Lp: 0.78, Ms: 0.87 };
+
+  /** Effective read noise. The paper hard-codes 56 e-/px (CDS); the official
+   *  Keck code divides by sqrt(nread) above two reads. */
+  function effectiveReadNoise(nReads, scaleWithReads) {
+    if (scaleWithReads && nReads > 2) return DETECTOR.readNoise / Math.sqrt(nReads);
+    return DETECTOR.readNoise;
+  }
+
+  /** One lambda/D in mas at the given wavelength. */
+  function lambdaOverD(lambdaMicron) {
+    return ((lambdaMicron * 1e-6) / TELESCOPE_DIAMETER) * 206265 * 1000;
+  }
+
+  /* Preset photometry, from the authors' reference implementation. */
+  var TARGETS = {
+    "HR 8799 b": { J: 16.52, H: 15.08, K: 14.05, Lp: 12.68, Ms: 13.07 },
+    "HR 8799 c": { J: 14.65, H: 14.18, K: 13.13, Lp: 11.83, Ms: 12.05 },
+    "HR 8799 d": { J: 15.26, H: 14.23, K: 13.11, Lp: 11.50, Ms: 11.67 },
+    "HR 8799 e": { H: 13.88, K: 12.89, Lp: 11.61, Ms: 10.09 },
+    "kappa And b": { J: 12.7, H: 11.7, K: 11.0, Lp: 9.54 },
+    "1RXJ 1609 B": { J: 12.09, H: 11.06, K: 10.38, Lp: 8.99 },
+    "GSC 06214 B": { J: 10.43, H: 9.74, K: 9.14, Lp: 7.94, Ms: 7.94 },
+    "USco CTIO 108 B": { J: 10.72, H: 9.94, K: 9.30 },
+    "HIP 78530 B": { J: 9.25, H: 8.58, K: 8.36, Lp: 7.99 },
+    "2M 1207 A": { J: 9.35, H: 8.74, K: 8.30, Lp: 7.73 },
+    "2M 1207 B": { J: 16.40, H: 14.49, K: 13.31, Lp: 11.68 },
+    "TWA 5 B": { J: 9.1, H: 8.65, K: 7.91 },
+    "HR 7329 B": { J: 8.64, H: 8.33, K: 8.18, Lp: 7.69 },
+    "PZ Tel B": { J: 8.70, H: 8.31, K: 7.86 },
+    "2M0103AB B": { J: 12.1, H: 10.9, K: 10.3, Lp: 9.3 },
+    "AB Pic B": { J: 12.80, H: 11.31, K: 10.76, Lp: 9.9 },
+    "Luhman 16 A": { J: 15.00, H: 13.84, K: 12.91 },
+    "Luhman 16 B": { J: 14.69, H: 13.86, K: 13.20 },
+    "CD-35 2722 B": { J: 11.99, H: 11.14, K: 10.37 }
+  };
+
+  /* ═══ plotting ═════════════════════════════════════════════════════════
+   * A small SVG line plotter, so the page carries no external dependency.
+   */
+
+  var NS = "http://www.w3.org/2000/svg";
+
+  function svgEl(name, attrs, text) {
+    var node = document.createElementNS(NS, name);
+    for (var k in attrs) node.setAttribute(k, String(attrs[k]));
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  /** Format a number compactly for an axis label or readout. */
+  function fmt(v) {
+    if (!isFinite(v)) return "∞";
+    var a = Math.abs(v);
+    if (a === 0) return "0";
+    if (a >= 1e5 || a < 1e-3) return v.toExponential(1).replace("e+", "e");
+    if (a >= 100) return v.toFixed(0);
+    if (a >= 10) return v.toFixed(1);
+    if (a >= 1) return v.toFixed(2);
+    return v.toPrecision(3);
+  }
+
+  /** ~5 human-readable tick values spanning [lo, hi]. */
+  function ticks(lo, hi, log) {
+    var out = [], e, v;
+    if (log) {
+      for (e = Math.ceil(Math.log10(lo)); e <= Math.floor(Math.log10(hi)); e++) out.push(Math.pow(10, e));
+      return out.length >= 2 ? out : [lo, Math.sqrt(lo * hi), hi];
+    }
+    var span = hi - lo;
+    if (!(span > 0)) return [lo];
+    var mag = Math.pow(10, Math.floor(Math.log10(span / 5)));
+    var norm = span / 5 / mag;
+    var step = (norm >= 5 ? 5 : norm >= 2 ? 2 : 1) * mag;
+    for (v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) out.push(v);
+    return out;
+  }
+
+  /** Draw a single-series line chart into a container, replacing its contents.
+   *  Non-finite points, and non-positive ones on a log axis, are dropped; if
+   *  none survive the chart renders a "no finite data" note rather than
+   *  throwing. */
+  function lineChart(container, spec) {
+    container.textContent = "";
+    var W = 620, H = 300;
+    var m = { top: 34, right: 18, bottom: 48, left: 74 };
+    var iw = W - m.left - m.right, ih = H - m.top - m.bottom;
+
+    var svg = svgEl("svg", {
+      viewBox: "0 0 " + W + " " + H, "class": "chart",
+      role: "img", "aria-label": spec.title, preserveAspectRatio: "xMidYMid meet"
+    });
+    svg.appendChild(svgEl("text", { x: W / 2, y: 18, "text-anchor": "middle", "class": "chart-title" }, spec.title));
+
+    var pts = spec.points.filter(function (p) {
+      return isFinite(p.x) && isFinite(p.y) && (!spec.xLog || p.x > 0) && (!spec.yLog || p.y > 0);
+    });
+
+    if (pts.length === 0) {
+      svg.appendChild(svgEl("text", { x: W / 2, y: H / 2, "text-anchor": "middle", "class": "chart-empty" }, "no finite data"));
+      container.appendChild(svg);
+      return;
+    }
+
+    var xs = pts.map(function (p) { return p.x; });
+    var ys = pts.map(function (p) { return p.y; });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+    var y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    if (x1 === x0) x1 = x0 + (x0 === 0 ? 1 : Math.abs(x0) * 0.1);
+    if (y1 === y0) y1 = y0 + (y0 === 0 ? 1 : Math.abs(y0) * 0.1);
+    if (!spec.yLog && y0 > 0) y0 = 0;
+    if (!spec.xLog && x0 > 0 && x0 / x1 < 0.2) x0 = 0;
+
+    function tx(v) {
+      return m.left + (spec.xLog
+        ? (Math.log10(v) - Math.log10(x0)) / (Math.log10(x1) - Math.log10(x0))
+        : (v - x0) / (x1 - x0)) * iw;
+    }
+    function ty(v) {
+      return m.top + ih - (spec.yLog
+        ? (Math.log10(v) - Math.log10(y0)) / (Math.log10(y1) - Math.log10(y0))
+        : (v - y0) / (y1 - y0)) * ih;
+    }
+
+    ticks(y0, y1, spec.yLog).forEach(function (t) {
+      if (t < y0 || t > y1) return;
+      svg.appendChild(svgEl("line", { x1: m.left, x2: m.left + iw, y1: ty(t), y2: ty(t), "class": "gridline" }));
+      svg.appendChild(svgEl("text", { x: m.left - 8, y: ty(t) + 4, "text-anchor": "end", "class": "tick" }, fmt(t)));
+    });
+    ticks(x0, x1, spec.xLog).forEach(function (t) {
+      if (t < x0 || t > x1) return;
+      svg.appendChild(svgEl("line", { x1: tx(t), x2: tx(t), y1: m.top, y2: m.top + ih, "class": "gridline" }));
+      svg.appendChild(svgEl("text", { x: tx(t), y: m.top + ih + 19, "text-anchor": "middle", "class": "tick" }, fmt(t)));
+    });
+
+    svg.appendChild(svgEl("line", { x1: m.left, x2: m.left + iw, y1: m.top + ih, y2: m.top + ih, "class": "axisline" }));
+    svg.appendChild(svgEl("line", { x1: m.left, x2: m.left, y1: m.top, y2: m.top + ih, "class": "axisline" }));
+    svg.appendChild(svgEl("text", { x: m.left + iw / 2, y: H - 10, "text-anchor": "middle", "class": "axis-label" }, spec.xLabel));
+    svg.appendChild(svgEl("text", {
+      x: 15, y: m.top + ih / 2, "text-anchor": "middle", "class": "axis-label",
+      transform: "rotate(-90 15 " + (m.top + ih / 2) + ")"
+    }, spec.yLabel));
+
+    if (spec.hLine !== undefined && spec.hLine >= y0 && spec.hLine <= y1) {
+      svg.appendChild(svgEl("line", { x1: m.left, x2: m.left + iw, y1: ty(spec.hLine), y2: ty(spec.hLine), "class": "threshold" }));
+      if (spec.hLabel) {
+        svg.appendChild(svgEl("text", { x: m.left + iw - 4, y: ty(spec.hLine) - 5, "text-anchor": "end", "class": "tick" }, spec.hLabel));
+      }
+    }
+
+    var d = pts.map(function (p, i) {
+      return (i ? "L" : "M") + tx(p.x).toFixed(2) + "," + ty(p.y).toFixed(2);
+    }).join(" ");
+    svg.appendChild(svgEl("path", {
+      d: d, fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round"
+    }));
+
+    var readout = svgEl("text", { x: m.left + 6, y: m.top + 12, "class": "readout" }, "");
+    var marker = svgEl("circle", { cx: -20, cy: -20, r: 3.5, "class": "marker" });
+    svg.appendChild(marker);
+    svg.appendChild(readout);
+
+    var hit = svgEl("rect", { x: m.left, y: m.top, width: iw, height: ih, fill: "transparent" });
+    hit.addEventListener("pointermove", function (ev) {
+      var box = svg.getBoundingClientRect();
+      var px = ((ev.clientX - box.left) / box.width) * W;
+      var best = pts[0], bestD = Infinity;
+      pts.forEach(function (p) {
+        var dd = Math.abs(tx(p.x) - px);
+        if (dd < bestD) { bestD = dd; best = p; }
+      });
+      marker.setAttribute("cx", tx(best.x));
+      marker.setAttribute("cy", ty(best.y));
+      readout.textContent = fmt(best.x) + ", " + fmt(best.y);
+    });
+    hit.addEventListener("pointerleave", function () {
+      marker.setAttribute("cx", -20);
+      readout.textContent = "";
+    });
+    svg.appendChild(hit);
+
+    container.appendChild(svg);
+  }
+
+  /* ═══ page ═════════════════════════════════════════════════════════════ */
+
+  function $(id) { return document.getElementById(id); }
+
+  /* Timing inputs share the efficiency calculator's defaults and validation. */
+  var DEFAULTS = {
+    nd: 4, nf: 3, nc: 1,
+    coadds: 50, itime: 0.2, tread: 0.18, nread: 2,
+    tao: 6, trw: 12, thwp: 1, nang: 4,
+    mag: 15, strehl: 0.36, polfrac: 0.1, minsnr: 10,
+    sep: 5, dr: 1, beta: 2
+  };
+
+  var KEYS = Object.keys(DEFAULTS);
+  var lastValid = Object.assign({}, DEFAULTS);
+
+  /** Read every numeric input, holding the last valid value for any field the
+   *  user has temporarily made invalid and flagging it in the UI. */
+  function readState() {
+    var s = {};
+    KEYS.forEach(function (k) {
+      var node = $(k);
+      var raw = node.value.trim();
+      var v = raw === "" ? NaN : Number(raw);
+      var min = node.min === "" ? -Infinity : Number(node.min);
+      var integer = node.step === "1";
+      var ok = isFinite(v) && v >= min && (!integer || v === Math.floor(v));
+      if (ok) {
+        lastValid[k] = v;
+        node.removeAttribute("aria-invalid");
+      } else {
+        node.setAttribute("aria-invalid", "true");
+      }
+      s[k] = lastValid[k];
+    });
+    return s;
+  }
+
+  function min2(sec) { return (sec / 60).toFixed(2); }
+
+  function sec1(v) {
+    return Math.abs(v - Math.round(v)) < 0.05 ? Math.round(v).toString() : v.toFixed(1);
+  }
+
+  var POL_PRESETS = [0.05, 0.1, 0.5, 1, 2];
+
+  function fillFilterOptions(sel, keys, keep) {
+    sel.textContent = "";
+    keys.forEach(function (k) {
+      var o = document.createElement("option");
+      o.value = k;
+      o.textContent = FILTER_LABELS[k];
+      sel.appendChild(o);
+    });
+    sel.value = keys.indexOf(keep) >= 0 ? keep : keys[0];
+  }
+
+  function initControls() {
+    var preset = $("preset");
+    Object.keys(TARGETS).forEach(function (name) {
+      var o = document.createElement("option");
+      o.value = name;
+      o.textContent = name;
+      preset.appendChild(o);
+    });
+
+    fillFilterOptions($("filter"), Object.keys(TABLE2.Narrow), "H");
+
+    var box = $("polPresets");
+    POL_PRESETS.forEach(function (p) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "preset";
+      b.textContent = p + "%";
+      b.setAttribute("data-for", "polfrac");
+      b.setAttribute("data-val", String(p));
+      b.setAttribute("aria-pressed", "false");
+      box.appendChild(b);
+    });
+
+    document.querySelectorAll(".preset[data-for]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        $(b.dataset.for).value = b.dataset.val;
+        render();
+      });
+    });
+
+    document.querySelectorAll(".step").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var target = $(btn.dataset.target);
+        var min = target.min === "" ? -Infinity : Number(target.min);
+        target.value = Math.max(min, Number(target.value) + Number(btn.dataset.step));
+        render();
+      });
+    });
+
+    preset.addEventListener("change", function () {
+      var bands = TARGETS[preset.value];
+      if (!bands) {
+        fillFilterOptions($("filter"), Object.keys(TABLE2.Narrow), $("filter").value);
+      } else {
+        fillFilterOptions($("filter"), Object.keys(bands), $("filter").value);
+        $("mag").value = bands[$("filter").value];
+      }
+      render();
+    });
+
+    $("filter").addEventListener("change", function () {
+      var bands = TARGETS[preset.value];
+      if (bands && bands[$("filter").value] !== undefined) $("mag").value = bands[$("filter").value];
+      var st = TYPICAL_STREHL[$("filter").value];
+      if (st !== undefined) $("strehl").value = st;
+      render();
+    });
+
+    document.querySelectorAll("input, select").forEach(function (el) {
+      if (el.id === "preset" || el.id === "filter") return;
+      el.addEventListener("input", render);
+      el.addEventListener("change", render);
+    });
+  }
+
+  /** Assemble the Eq. 10 parameter block from the form state.
+   *
+   *  The two models are joined here: one exposure is one coadd, so t = itime
+   *  and N_exp = nang·nd·nf·nc·coadds. N_exp·t is then exactly the on-sky
+   *  integration the timing model reports. */
+  function snrParams(s, camera, filter) {
+    var row = TABLE2[camera][filter];
+    var beta = Math.max(1.01, s.beta);
+    var z0Scaled = scaledZeroPoint(row.z0, s.strehl);
+    var F = sourceRate(z0Scaled, s.mag);
+    return {
+      row: row,
+      beta: beta,
+      z0Scaled: z0Scaled,
+      sourceRate: F,
+      tint: s.itime,
+      nExp: s.nang * s.nd * s.nf * s.nc * s.coadds,
+      readNoise: effectiveReadNoise(s.nread, $("scaleRead").checked),
+      darkRate: DETECTOR.darkRate,
+      bgRate: row.bg,
+      residRate: $("useResid").checked
+        ? residualStarlightRate(F, s.strehl, s.sep, s.dr, beta)
+        : 0,
+      gain: DETECTOR.gain,
+      nPix: row.nPix
+    };
+  }
+
+  function renderRows(node, rows) {
+    node.textContent = "";
+    rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      var th = document.createElement("th");
+      th.scope = "row";
+      th.textContent = r.cells[0];
+      tr.appendChild(th);
+      for (var i = 1; i < r.cells.length; i++) {
+        var td = document.createElement("td");
+        td.textContent = r.cells[i];
+        tr.appendChild(td);
+      }
+      if (r.dominant) tr.className = "dominant";
+      node.appendChild(tr);
+    });
+  }
+
+  function render() {
+    var s = readState();
+    var camera = $("camera").value;
+    var filter = $("filter").value;
+    var p = snrParams(s, camera, filter);
+
+    var timing = computeTiming(s);
+    var baseSnr = snr(p);
+    var spol = polSnr(baseSnr, s.polfrac / 100);
+
+    /* Time to threshold: solve Eq. 16 for the per-coadd integration, then run
+       the timing model again at that itime so the elapsed figure includes the
+       overheads it actually implies rather than scaling the current one. */
+    var tReq = exposureTimeForPolFraction(Object.assign({}, p, {
+      polFraction: s.polfrac / 100, minSnr: s.minsnr
+    }));
+    var reqTiming = isFinite(tReq)
+      ? computeTiming(Object.assign({}, s, { itime: tReq }))
+      : null;
+
+    /* headline tiles */
+    $("outSnr").textContent = fmt(baseSnr);
+    $("outSnrSub").textContent = timing.images + " images × " + s.coadds + " coadds";
+    $("outPol").textContent = fmt(spol);
+    var meets = spol >= s.minsnr;
+    var verdict = $("outVerdict");
+    verdict.textContent = meets ? "meets threshold" : "below threshold";
+    verdict.className = "verdict " + (meets ? "yes" : "no");
+    $("outTime").textContent = reqTiming ? fmt(reqTiming.total / 3600) : "∞";
+    $("outTimeSub").textContent = reqTiming
+      ? "itime " + fmt(tReq) + " s, " + min2(reqTiming.integ) + " min on sky"
+      : "unreachable at this p";
+
+    $("railSnr").textContent = fmt(baseSnr);
+    $("railTime").textContent = reqTiming ? fmt(reqTiming.total / 3600) : "∞";
+
+    /* noise budget */
+    var v = varianceTerms(p);
+    var totalVar = v.read + v.dark + v.sky + v.resid + v.source;
+    var terms = [
+      ["Read noise", v.read], ["Dark current", v.dark], ["Sky background", v.sky],
+      ["Residual starlight", v.resid], ["Source shot noise", v.source]
+    ];
+    var maxTerm = 0;
+    terms.forEach(function (t) { if (t[1] > maxTerm) maxTerm = t[1]; });
+    renderRows($("budget"), terms.map(function (t) {
+      return {
+        cells: [t[0], fmt(t[1]), totalVar > 0 ? ((100 * t[1]) / totalVar).toFixed(1) + "%" : "—"],
+        dominant: t[1] === maxTerm && maxTerm > 0
+      };
+    }));
+
+    /* time budget, in the same order and wording as the efficiency calculator */
+    var timeRows = SEGMENTS.map(function (seg) {
+      var val = timing.parts[seg.key];
+      var pct = timing.total > 0 ? (val / timing.total) * 100 : 0;
+      return {
+        cells: [seg.name, sec1(val), min2(val), pct.toFixed(1) + "%"],
+        dominant: seg.key === "integ"
+      };
+    });
+    timeRows.push({
+      cells: ["Total elapsed — efficiency " + (timing.eff * 100).toFixed(2) + "%",
+              sec1(timing.total), min2(timing.total), "100.0%"],
+      dominant: false
+    });
+    renderRows($("timing"), timeRows);
+
+    /* scale conversions */
+    var masPerLD = lambdaOverD(p.row.lambda);
+    var pxPerLD = masPerLD / PLATE_SCALE[camera];
+    $("alphaNote").textContent =
+      "α = " + moffatAlpha(p.beta).toFixed(4) + " λ/D. At " + p.row.lambda +
+      " μm on the " + camera + " camera, 1 λ/D = " + masPerLD.toFixed(1) +
+      " mas = " + pxPerLD.toFixed(2) + " px, so r₀ = " + (s.sep * pxPerLD).toFixed(1) +
+      " px and δr = " + (s.dr * pxPerLD).toFixed(1) + " px.";
+
+    /* worked equation */
+    $("eqNum").innerHTML =
+      "SNR = √" + p.nExp + " · (" + fmt(p.sourceRate) + "·" + fmt(p.tint) +
+      ") / √( " + fmt(v.read) + " + " + fmt(v.dark) + " + " + fmt(v.sky) + " + " +
+      fmt(v.resid) + " + " + fmt(v.source) + " )\n    = <span class=\"hl\">" + fmt(baseSnr) + "</span>";
+
+    /* charts */
+    var snrPts = [];
+    for (var i = 1; i <= 40; i++) {
+      var t = (s.itime * 2 * i) / 40;
+      snrPts.push({ x: t * p.nExp / 60, y: snr(Object.assign({}, p, { tint: t })) });
+    }
+    lineChart($("plotSnr"), {
+      title: "SNR vs on-sky integration",
+      xLabel: "On-sky integration (min)", yLabel: "SNR", points: snrPts
+    });
+
+    var polPts = [];
+    for (var j = 1; j <= 60; j++) {
+      var pf = (s.polfrac / 100) * 3 * j / 60;
+      var tt = exposureTimeForPolFraction(Object.assign({}, p, { polFraction: pf, minSnr: s.minsnr }));
+      if (isFinite(tt)) {
+        polPts.push({ x: computeTiming(Object.assign({}, s, { itime: tt })).total / 3600, y: pf * 100 });
+      }
+    }
+    lineChart($("plotPol"), {
+      title: "Polarization fraction vs elapsed time to SNR_pol = " + fmt(s.minsnr),
+      xLabel: "Elapsed time (hr)", yLabel: "Polarization fraction (%)",
+      xLog: true, points: polPts,
+      hLine: s.polfrac, hLabel: "current p"
+    });
+
+    var alpha = moffatAlpha(p.beta);
+    var residPts = [];
+    for (var k = 0; k <= 60; k++) {
+      var r = (30 * k) / 60;
+      residPts.push({ x: r, y: p.sourceRate * (1 - s.strehl) * moffatProfile(r, alpha, p.beta) });
+    }
+    lineChart($("plotResid"), {
+      title: "Residual starlight profile (β = " + fmt(p.beta) + ", α = " + alpha.toFixed(3) + ")",
+      xLabel: "Angular separation (λ/D)", yLabel: "Residual rate (e⁻/s per λ/D)",
+      yLog: true, points: residPts
+    });
+
+    /* preset chips reflect the current value */
+    document.querySelectorAll(".preset[data-for]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(Number(b.dataset.val) === Number($(b.dataset.for).value)));
+    });
+  }
+
+  initControls();
+  render();
+})();
+</script>
+
+</body>
+</html>
