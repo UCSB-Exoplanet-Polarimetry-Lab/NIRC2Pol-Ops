@@ -1,0 +1,1325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Estimate total elapsed time, on-sky integration and efficiency for NIRC2-Pol half-wave plate cycle observations on Keck II.">
+<title>NIRC2-Pol HWP Cycle Timing</title>
+</head>
+<body>
+<style>
+  /* ─── tokens ─────────────────────────────────────────────────────────── */
+  :root {
+    /* neutrals carry a slight blue bias — chosen against the ember accent */
+    --ground:      #E7EAEF;
+    --surface:     #FFFFFF;
+    --surface-sunk:#F1F3F7;
+    --ink:         #12151C;
+    --ink-2:       #3C4453;
+    --muted:       #5B6374;
+    --line:        #D5DAE3;
+    --line-soft:   #E3E7EE;
+    --accent:      #A8341F;
+    --accent-soft: #F6E6E1;
+    --focus:       #A8341F;
+
+    /* ordered one-hue ramp for the time breakdown (validated, light surface) */
+    --seg-1: #85261B;
+    --seg-2: #B44631;
+    --seg-3: #D47356;
+    --seg-4: #E89A80;
+
+    --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, Georgia, serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --r-card: 10px;
+    --r-field: 7px;
+
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:      #0D1016;
+      --surface:     #171C24;
+      --surface-sunk:#111620;
+      --ink:         #E3E7EF;
+      --ink-2:       #B7C0CE;
+      --muted:       #8996A8;
+      --line:        #29323F;
+      --line-soft:   #212934;
+      --accent:      #FF7A66;
+      --accent-soft: #2A1A17;
+      --focus:       #FF7A66;
+
+      --seg-1: #FF9482;
+      --seg-2: #DB6A54;
+      --seg-3: #AF4B37;
+      --seg-4: #8A392A;
+    }
+  }
+
+  /* the viewer's toggle must win over the media query in both directions */
+  :root[data-theme="dark"] {
+    --ground:      #0D1016;
+    --surface:     #171C24;
+    --surface-sunk:#111620;
+    --ink:         #E3E7EF;
+    --ink-2:       #B7C0CE;
+    --muted:       #8996A8;
+    --line:        #29323F;
+    --line-soft:   #212934;
+    --accent:      #FF7A66;
+    --accent-soft: #2A1A17;
+    --focus:       #FF7A66;
+    --seg-1: #FF9482;
+    --seg-2: #DB6A54;
+    --seg-3: #AF4B37;
+    --seg-4: #8A392A;
+    color-scheme: dark;
+  }
+
+  :root[data-theme="light"] {
+    --ground:      #E7EAEF;
+    --surface:     #FFFFFF;
+    --surface-sunk:#F1F3F7;
+    --ink:         #12151C;
+    --ink-2:       #3C4453;
+    --muted:       #5B6374;
+    --line:        #D5DAE3;
+    --line-soft:   #E3E7EE;
+    --accent:      #A8341F;
+    --accent-soft: #F6E6E1;
+    --focus:       #A8341F;
+    --seg-1: #85261B;
+    --seg-2: #B44631;
+    --seg-3: #D47356;
+    --seg-4: #E89A80;
+    color-scheme: light;
+  }
+
+  /* ─── base ───────────────────────────────────────────────────────────── */
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 20px 72px;
+  }
+
+  /* ─── header ─────────────────────────────────────────────────────────── */
+  .masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 24px;
+    padding: 44px 0 26px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 26px;
+  }
+
+  .masthead-text { flex: 1 1 380px; min-width: 0; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(30px, 4.6vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    color: var(--muted);
+    margin: 12px 0 0;
+    max-width: 60ch;
+  }
+
+  /* the four HWP angles of one cycle — the unit everything else counts in */
+  .cycle-key {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .cycle-key figure { margin: 0; text-align: center; }
+
+  .cycle-key svg {
+    display: block;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--surface);
+  }
+
+  .cycle-key figcaption {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ─── layout ─────────────────────────────────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .col-out { position: sticky; top: 20px; display: grid; gap: 22px; }
+
+  @media (max-width: 900px) {
+    .col-out { position: static; }
+  }
+
+  .col-in { display: grid; gap: 22px; }
+
+  /* ─── cards ──────────────────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 20px;
+  }
+
+  .card > h2 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .card-note {
+    color: var(--muted);
+    font-size: 12.5px;
+    margin: 0 0 18px;
+  }
+
+  .fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0 0 22px;
+    display: grid;
+    gap: 14px;
+  }
+
+  .fieldset:last-of-type { margin-bottom: 0; }
+
+  .fieldset > legend {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 0 0 10px;
+    margin: 0;
+    float: left;
+    width: 100%;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .fieldset > legend + * { margin-top: 12px; }
+
+  /* ─── fields ─────────────────────────────────────────────────────────── */
+  .field { display: grid; gap: 5px; min-width: 0; }
+
+  .field > label {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+
+  .field .hint {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* keyword as it appears in HWP_Rotation_Sequence.sh */
+  .kw {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 3px;
+    padding: 1px 4px;
+    white-space: nowrap;
+  }
+
+  .control { display: flex; align-items: stretch; gap: 6px; }
+
+  input[type="number"] {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-field);
+    padding: 8px 10px;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"]:focus-visible,
+  button:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  input[type="number"][aria-invalid="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .step {
+    flex: 0 0 auto;
+    width: 32px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1;
+    color: var(--ink-2);
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-field);
+    cursor: pointer;
+  }
+
+  .step:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+  .unit {
+    flex: 0 0 auto;
+    align-self: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* segmented presets */
+  .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+
+  .preset {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 9px;
+    cursor: pointer;
+  }
+
+  .preset:hover { color: var(--accent); border-color: var(--accent); }
+
+  .preset[aria-pressed="true"] {
+    color: var(--surface);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* ─── advanced disclosure ────────────────────────────────────────────── */
+  details.adv {
+    border-top: 1px solid var(--line-soft);
+    margin-top: 20px;
+    padding-top: 14px;
+  }
+
+  details.adv > summary {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  details.adv > summary::-webkit-details-marker { display: none; }
+
+  details.adv > summary::before {
+    content: "+";
+    font-size: 13px;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  details.adv[open] > summary::before { content: "\2212"; }
+
+  details.adv > summary:hover { color: var(--accent); }
+
+  .adv-body { display: grid; gap: 14px; margin-top: 16px; }
+
+  /* ─── readout tiles ──────────────────────────────────────────────────── */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    overflow: hidden;
+  }
+
+  @media (max-width: 560px) {
+    .tiles { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .tile { background: var(--surface); padding: 18px 20px; min-width: 0; }
+
+  .tile.lead { background: var(--surface); }
+
+  .tile-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+
+  .tile-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(26px, 4vw, 33px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+  }
+
+  .tile.lead .tile-value { color: var(--accent); }
+
+  .tile-value .u { font-size: 14px; letter-spacing: 0; color: var(--muted); }
+
+  .tile-sub {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* ─── breakdown bar ──────────────────────────────────────────────────── */
+  .bar {
+    display: flex;
+    width: 100%;
+    height: 46px;
+    gap: 2px;
+    margin: 4px 0 18px;
+    background: var(--surface);
+  }
+
+  .seg {
+    position: relative;
+    min-width: 2px;
+    border: 0;
+    padding: 0;
+    cursor: default;
+    transition: filter 120ms ease;
+  }
+
+  .seg:first-child { border-radius: 4px 0 0 4px; }
+  .seg:last-child  { border-radius: 0 4px 4px 0; }
+
+  .seg[data-i="0"] { background: var(--seg-1); }
+  .seg[data-i="1"] { background: var(--seg-2); }
+  .seg[data-i="2"] { background: var(--seg-3); }
+  .seg[data-i="3"] { background: var(--seg-4); }
+
+  .seg.is-active { filter: brightness(1.12); }
+
+  .seg-pct {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #FFFFFF;
+    pointer-events: none;
+  }
+
+  /* the pale end of the ramp needs dark text on it */
+  .seg[data-i="3"] .seg-pct { color: #2A1008; }
+
+  :root[data-theme="dark"] .seg[data-i="0"] .seg-pct { color: #2A1008; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .seg[data-i="0"] .seg-pct { color: #2A1008; }
+    :root:not([data-theme="light"]) .seg[data-i="3"] .seg-pct { color: #FFFFFF; }
+  }
+  :root[data-theme="dark"] .seg[data-i="3"] .seg-pct { color: #FFFFFF; }
+  :root[data-theme="light"] .seg[data-i="0"] .seg-pct { color: #FFFFFF; }
+  :root[data-theme="light"] .seg[data-i="3"] .seg-pct { color: #2A1008; }
+
+  /* legend doubles as the table view — identity never rests on color alone */
+  .legend { width: 100%; border-collapse: collapse; }
+
+  .legend caption {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+  }
+
+  .legend th, .legend td {
+    text-align: right;
+    padding: 7px 0 7px 18px;
+    border-bottom: 1px solid var(--line-soft);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  .legend tbody th {
+    text-align: left;
+    font-weight: 400;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    width: 99%;
+    white-space: normal;
+    padding-left: 0;
+  }
+
+  .legend thead th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom-color: var(--line);
+  }
+
+  .legend thead th.col-name {
+    text-align: left;
+    width: 99%;
+    padding-left: 0;
+  }
+
+  .legend tbody tr:last-child th,
+  .legend tbody tr:last-child td { border-bottom: 0; }
+
+  .legend tbody tr.is-active th,
+  .legend tbody tr.is-active td { color: var(--ink); background: var(--surface-sunk); }
+
+  .swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 9px;
+    vertical-align: baseline;
+    flex: 0 0 auto;
+  }
+
+  .swatch[data-i="0"] { background: var(--seg-1); }
+  .swatch[data-i="1"] { background: var(--seg-2); }
+  .swatch[data-i="2"] { background: var(--seg-3); }
+  .swatch[data-i="3"] { background: var(--seg-4); }
+
+  /* ─── equation ───────────────────────────────────────────────────────── */
+  .eq { display: grid; gap: 12px; }
+
+  .eq-row { overflow-x: auto; padding-bottom: 2px; }
+
+  .eq-row code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: pre;
+    display: block;
+  }
+
+  .eq-sym code { color: var(--muted); }
+  .eq-num code { color: var(--ink); }
+  .eq-num .hl { color: var(--accent); }
+
+  .eq-legend {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 4px 0 0;
+    padding-left: 18px;
+  }
+
+  .eq-legend li { margin-bottom: 3px; }
+
+  /* ─── actions ────────────────────────────────────────────────────────── */
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+
+  .btn {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: var(--ink-2);
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-field);
+    padding: 7px 13px;
+    cursor: pointer;
+  }
+
+  .btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ─── mobile summary rail ────────────────────────────────────────────── */
+  .rail {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    gap: 18px;
+    align-items: baseline;
+    padding: 10px 20px;
+    margin: 0 -20px 18px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  .rail b { color: var(--accent); font-weight: 600; font-size: 15px; }
+  .rail span { color: var(--ink); }
+
+  @media (max-width: 900px) { .rail { display: flex; } }
+
+  /* ─── footer ─────────────────────────────────────────────────────────── */
+  .colophon {
+    margin-top: 34px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--muted);
+    max-width: 78ch;
+  }
+
+  .colophon a {
+    color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  .colophon code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--surface-sunk);
+    border: 1px solid var(--line-soft);
+    border-radius: 3px;
+    padding: 1px 4px;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--ink);
+    color: var(--ground);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 9px 16px;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease;
+    z-index: 20;
+  }
+
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .tip {
+    position: fixed;
+    z-index: 30;
+    pointer-events: none;
+    background: var(--ink);
+    color: var(--ground);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    line-height: 1.5;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 110ms ease;
+  }
+
+  .tip.show { opacity: 1; }
+
+  .tip b { display: block; font-weight: 600; margin-bottom: 2px; }
+
+  .sr {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-text">
+      <p class="eyebrow">Keck II &middot; NIRC2 &middot; polarimetry</p>
+      <h1>HWP Cycle Time Calculator</h1>
+      <p class="standfirst">
+        Half-wave plate cycling makes NIRC2 polarimetry considerably more expensive than
+        straight imaging. Enter a proposed setup to see the wall-clock cost, the integration
+        you actually keep, and where the rest of the time goes.
+      </p>
+    </div>
+
+    <!-- the cycle in the order HWP_Rotation_Sequence.sh actually steps it -->
+    <div class="cycle-key" aria-hidden="true">
+      <figure>
+        <svg viewBox="0 0 34 34"><line x1="17" y1="6" x2="17" y2="28" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" transform="rotate(0 17 17)"/></svg>
+        <figcaption>0&deg;</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 34 34"><line x1="17" y1="6" x2="17" y2="28" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" transform="rotate(45 17 17)"/></svg>
+        <figcaption>45&deg;</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 34 34"><line x1="17" y1="6" x2="17" y2="28" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" transform="rotate(22.5 17 17)"/></svg>
+        <figcaption>22.5&deg;</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 34 34"><line x1="17" y1="6" x2="17" y2="28" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" transform="rotate(67.5 17 17)"/></svg>
+        <figcaption>67.5&deg;</figcaption>
+      </figure>
+    </div>
+  </header>
+
+  <div class="rail" id="rail">
+    <span>Elapsed <b id="railElapsed">26.10</b> min</span>
+    <span>Efficiency <b id="railEff">30.65</b>%</span>
+  </div>
+
+  <div class="grid">
+
+    <!-- ── inputs ───────────────────────────────────────────────────── -->
+    <div class="col-in">
+      <section class="card">
+        <h2>Observing setup</h2>
+        <p class="card-note">Every value updates the readout immediately.</p>
+
+        <fieldset class="fieldset">
+          <legend>Cadence</legend>
+
+          <div class="field">
+            <label for="nd">Dither positions</label>
+            <div class="control">
+              <button class="step" type="button" data-step="-1" data-target="nd" aria-label="Decrease dither positions">&minus;</button>
+              <input type="number" id="nd" min="1" step="1" value="4">
+              <button class="step" type="button" data-step="1" data-target="nd" aria-label="Increase dither positions">+</button>
+            </div>
+            <p class="hint">Telescope offsets in the pattern. Each move costs AO overhead.</p>
+          </div>
+
+          <div class="field">
+            <label for="nf">Frames per HWP angle</label>
+            <div class="control">
+              <button class="step" type="button" data-step="-1" data-target="nf" aria-label="Decrease frames per HWP angle">&minus;</button>
+              <input type="number" id="nf" min="1" step="1" value="3">
+              <button class="step" type="button" data-step="1" data-target="nf" aria-label="Increase frames per HWP angle">+</button>
+            </div>
+            <p class="hint">Exposures at each angle before the plate moves on &mdash;
+              <code class="kw">NUM_EXPOSURES</code></p>
+          </div>
+
+          <div class="field">
+            <label for="nc">HWP cycles per dither</label>
+            <div class="control">
+              <button class="step" type="button" data-step="-1" data-target="nc" aria-label="Decrease HWP cycles per dither">&minus;</button>
+              <input type="number" id="nc" min="1" step="1" value="1">
+              <button class="step" type="button" data-step="1" data-target="nc" aria-label="Increase HWP cycles per dither">+</button>
+            </div>
+            <p class="hint">Complete 0&deg; &rarr; 45&deg; &rarr; 22.5&deg; &rarr; 67.5&deg; sequences at each dither position &mdash;
+              <code class="kw">HWP_CYCLES</code></p>
+          </div>
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>Detector</legend>
+
+          <div class="field">
+            <label for="coadds">Coadds</label>
+            <div class="control">
+              <button class="step" type="button" data-step="-1" data-target="coadds" aria-label="Decrease coadds">&minus;</button>
+              <input type="number" id="coadds" min="1" step="1" value="50">
+              <button class="step" type="button" data-step="1" data-target="coadds" aria-label="Increase coadds">+</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="itime">Integration per coadd &mdash; <span style="font-family:var(--font-mono)">itime</span></label>
+            <div class="control">
+              <input type="number" id="itime" min="0" step="0.01" value="0.2">
+              <span class="unit">sec</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="tread">Readout time &mdash; <span style="font-family:var(--font-mono)">tread</span></label>
+            <div class="control">
+              <input type="number" id="tread" min="0" step="0.01" value="0.18">
+              <span class="unit">sec</span>
+            </div>
+            <div class="presets" id="treadPresets">
+              <button class="preset" type="button" data-for="tread" data-val="0.18">Full array 1024&times;1024</button>
+              <button class="preset" type="button" data-for="tread" data-val="0.05">Sub-array 512&times;512</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="nread">Number of reads &mdash; <span style="font-family:var(--font-mono)">nread</span></label>
+            <div class="control">
+              <button class="step" type="button" data-step="-1" data-target="nread" aria-label="Decrease number of reads">&minus;</button>
+              <input type="number" id="nread" min="1" step="1" value="2">
+              <button class="step" type="button" data-step="1" data-target="nread" aria-label="Increase number of reads">+</button>
+            </div>
+            <div class="presets" id="nreadPresets">
+              <button class="preset" type="button" data-for="nread" data-val="2">CDS</button>
+              <button class="preset" type="button" data-for="nread" data-val="6">MCDS-3</button>
+              <button class="preset" type="button" data-for="nread" data-val="16">MCDS-8</button>
+            </div>
+            <p class="hint">Only <span style="font-family:var(--font-mono)">nread &minus; 1</span> reads are charged &mdash; the first is absorbed by the integration.</p>
+          </div>
+        </fieldset>
+
+        <details class="adv">
+          <summary>Overhead constants</summary>
+          <div class="adv-body">
+            <div class="field">
+              <label for="tao">AO overhead per dither move</label>
+              <div class="control">
+                <input type="number" id="tao" min="0" step="0.5" value="6">
+                <span class="unit">sec</span>
+              </div>
+              <p class="hint">Open loops, slew, reposition FSMs and FCS, close TT and DM loops. Charged <span style="font-family:var(--font-mono)">ndither + 1</span> times.</p>
+            </div>
+
+            <div class="field">
+              <label for="trw">Image read and write</label>
+              <div class="control">
+                <input type="number" id="trw" min="0" step="0.5" value="12">
+                <span class="unit">sec</span>
+              </div>
+              <p class="hint">Reading out a NIRC2 frame and writing it with full FITS headers.</p>
+            </div>
+
+            <div class="field">
+              <label for="thwp">HWP rotation command</label>
+              <div class="control">
+                <input type="number" id="thwp" min="0" step="0.5" value="1">
+                <span class="unit">sec</span>
+              </div>
+              <p class="hint">The stage itself is quick; this is command processing and dispatch.</p>
+            </div>
+
+            <div class="field">
+              <label for="nang">HWP angles per cycle</label>
+              <div class="control">
+                <button class="step" type="button" data-step="-1" data-target="nang" aria-label="Decrease HWP angles per cycle">&minus;</button>
+                <input type="number" id="nang" min="1" step="1" value="4">
+                <button class="step" type="button" data-step="1" data-target="nang" aria-label="Increase HWP angles per cycle">+</button>
+              </div>
+              <p class="hint">Four for standard linear polarimetry. Change only if you are running a non-standard sequence.</p>
+            </div>
+          </div>
+        </details>
+
+        <div class="actions">
+          <button class="btn" type="button" id="btnReset">Reset to defaults</button>
+          <button class="btn" type="button" id="btnLink">Copy link to this setup</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ── outputs ──────────────────────────────────────────────────── -->
+    <div class="col-out">
+
+      <div class="tiles">
+        <div class="tile lead">
+          <p class="tile-label">Total elapsed</p>
+          <p class="tile-value"><span id="outElapsed">26.10</span><span class="u">min</span></p>
+          <p class="tile-sub" id="outElapsedClock">00:26:06</p>
+        </div>
+        <div class="tile">
+          <p class="tile-label">On-sky integration</p>
+          <p class="tile-value"><span id="outInteg">8.00</span><span class="u">min</span></p>
+          <p class="tile-sub" id="outIntegSec">480 s across 48 images</p>
+        </div>
+        <div class="tile">
+          <p class="tile-label">Efficiency</p>
+          <p class="tile-value"><span id="outEff">30.65</span><span class="u">%</span></p>
+          <p class="tile-sub" id="outOverhead">18.10 min overhead</p>
+        </div>
+      </div>
+
+      <section class="card">
+        <h2>Where the time goes</h2>
+        <p class="card-note">The full elapsed time, split into the four terms of the equation.</p>
+
+        <div class="bar" id="bar"></div>
+
+        <table class="legend" id="legend">
+          <caption class="sr">Elapsed time by component</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="col-name">Component</th>
+              <th scope="col">Sec</th>
+              <th scope="col">Min</th>
+              <th scope="col">Share</th>
+            </tr>
+          </thead>
+          <tbody id="legendBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>The equation</h2>
+        <p class="card-note">Substituted with your current values.</p>
+
+        <div class="eq">
+          <div class="eq-row eq-sym">
+            <code id="eqSym"></code>
+          </div>
+          <div class="eq-row eq-num">
+            <code id="eqNum"></code>
+          </div>
+        </div>
+
+        <ul class="eq-legend">
+          <li><b id="fImages">48</b> images total &mdash; angles &times; dithers &times; frames &times; cycles</li>
+          <li><b id="fPerImage">28.0</b> s per image at the detector, plus <b id="fPerImageOh">13.0</b> s to read, write and step the plate</li>
+        </ul>
+
+        <div class="actions">
+          <button class="btn" type="button" id="btnCopy">Copy summary</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <p class="colophon">
+    Elapsed time is <code>tao&middot;(ndither+1)</code> for AO recovery at each dither, plus
+    <code>nangles&middot;(trw+thwp)&middot;ndither&middot;nframes&middot;ncycles</code> to read, write and step the
+    plate for every image, plus
+    <code>nangles&middot;ndither&middot;nframes&middot;ncycles&middot;coadds&middot;(itime+tread&middot;(nread&minus;1))</code>
+    at the detector. Efficiency is on-sky integration divided by elapsed time. All figures are
+    estimates for planning &mdash; they exclude acquisition, focus, and calibration.
+  </p>
+
+  <p class="colophon" style="margin-top:14px;border-top:0;padding-top:0">
+    Part of
+    <a href="https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-Ops">NIRC2Pol-Ops</a>.
+    The cadence fields map onto the keywords of
+    <a href="https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-Ops/blob/main/HWP_Rotation_Sequence.sh">HWP_Rotation_Sequence.sh</a>,
+    which steps the plate through 0&deg;, 45&deg;, 22.5&deg;, 67.5&deg;.
+  </p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="tip" id="tip" role="presentation"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // The host page normally supplies this; add it only if it did not, so the
+  // width breakpoints resolve against the device rather than a 980px fallback.
+  if (!document.querySelector('meta[name="viewport"]')) {
+    var vp = document.createElement("meta");
+    vp.name = "viewport";
+    vp.content = "width=device-width, initial-scale=1";
+    document.head.appendChild(vp);
+  }
+
+  var DEFAULTS = {
+    nd: 4, nf: 3, nc: 1,
+    coadds: 50, itime: 0.2, tread: 0.18, nread: 2,
+    tao: 6, trw: 12, thwp: 1, nang: 4
+  };
+
+  var KEYS = Object.keys(DEFAULTS);
+  var el = {};
+  KEYS.forEach(function (k) { el[k] = document.getElementById(k); });
+
+  var SEGMENTS = [
+    { key: "integ", name: "On-sky integration" },
+    { key: "read",  name: "Detector readout" },
+    { key: "instr", name: "Image read/write + HWP moves" },
+    { key: "ao",    name: "AO recovery after dithers" }
+  ];
+
+  // \u2500\u2500 read + validate \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  var lastValid = Object.assign({}, DEFAULTS);
+
+  function readState() {
+    var s = {};
+    KEYS.forEach(function (k) {
+      var node = el[k];
+      var raw = node.value.trim();
+      var v = raw === "" ? NaN : Number(raw);
+      var min = Number(node.min);
+      var integer = node.step === "1";
+      var ok = isFinite(v) && v >= min && (!integer || v === Math.floor(v));
+      if (ok) {
+        lastValid[k] = v;
+        node.removeAttribute("aria-invalid");
+      } else {
+        node.setAttribute("aria-invalid", "true");
+      }
+      s[k] = lastValid[k];
+    });
+    return s;
+  }
+
+  // \u2500\u2500 the model \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  function compute(s) {
+    var images = s.nang * s.nd * s.nf * s.nc;
+    var integ = images * s.coadds * s.itime;
+    var read  = images * s.coadds * s.tread * (s.nread - 1);
+    var instr = images * (s.trw + s.thwp);
+    var ao    = s.tao * (s.nd + 1);
+    var total = integ + read + instr + ao;
+    return {
+      images: images,
+      parts: { integ: integ, read: read, instr: instr, ao: ao },
+      total: total,
+      integ: integ,
+      eff: total > 0 ? integ / total : 0,
+      perImageDetector: s.coadds * (s.itime + s.tread * (s.nread - 1)),
+      perImageOverhead: s.trw + s.thwp
+    };
+  }
+
+  // \u2500\u2500 formatting \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  function min2(sec) { return (sec / 60).toFixed(2); }
+
+  function clock(sec) {
+    var t = Math.round(sec);
+    var h = Math.floor(t / 3600);
+    var m = Math.floor((t % 3600) / 60);
+    var ss = t % 60;
+    function p(n) { return (n < 10 ? "0" : "") + n; }
+    return p(h) + ":" + p(m) + ":" + p(ss);
+  }
+
+  function sec1(v) {
+    return (Math.abs(v - Math.round(v)) < 0.05 ? Math.round(v).toString() : v.toFixed(1));
+  }
+
+  function trimNum(v) {
+    return String(Number(v.toFixed(6)));
+  }
+
+  // \u2500\u2500 rendering \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  var bar = document.getElementById("bar");
+  var legendBody = document.getElementById("legendBody");
+  var tip = document.getElementById("tip");
+  var segNodes = [];
+  var rowNodes = [];
+
+  function buildChart() {
+    SEGMENTS.forEach(function (seg, i) {
+      var d = document.createElement("div");
+      d.className = "seg";
+      d.setAttribute("data-i", String(i));
+      d.innerHTML = '<span class="seg-pct"></span>';
+      bar.appendChild(d);
+      segNodes.push(d);
+
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<th scope="row"><span class="swatch" data-i="' + i + '"></span>' + seg.name + "</th>" +
+        "<td></td><td></td><td></td>";
+      legendBody.appendChild(tr);
+      rowNodes.push(tr);
+
+      function on() {
+        d.classList.add("is-active");
+        tr.classList.add("is-active");
+      }
+      function off() {
+        d.classList.remove("is-active");
+        tr.classList.remove("is-active");
+        tip.classList.remove("show");
+      }
+
+      d.addEventListener("mouseenter", on);
+      d.addEventListener("mouseleave", off);
+      tr.addEventListener("mouseenter", on);
+      tr.addEventListener("mouseleave", off);
+
+      d.addEventListener("mousemove", function (e) {
+        tip.innerHTML = "<b>" + seg.name + "</b>" + d.dataset.detail;
+        tip.classList.add("show");
+        var w = tip.offsetWidth, h = tip.offsetHeight;
+        var x = Math.min(Math.max(e.clientX - w / 2, 8), window.innerWidth - w - 8);
+        var y = e.clientY - h - 12;
+        if (y < 8) { y = e.clientY + 16; }
+        tip.style.left = x + "px";
+        tip.style.top = y + "px";
+      });
+    });
+  }
+
+  function renderChart(r) {
+    SEGMENTS.forEach(function (seg, i) {
+      var v = r.parts[seg.key];
+      var pct = r.total > 0 ? (v / r.total) * 100 : 0;
+      var node = segNodes[i];
+      node.style.flex = "0 0 " + pct + "%";
+      node.dataset.detail = sec1(v) + " s &middot; " + min2(v) + " min &middot; " + pct.toFixed(1) + "%";
+      node.querySelector(".seg-pct").textContent = pct >= 9 ? pct.toFixed(0) + "%" : "";
+
+      var cells = rowNodes[i].querySelectorAll("td");
+      cells[0].textContent = sec1(v);
+      cells[1].textContent = min2(v);
+      cells[2].textContent = pct.toFixed(1) + "%";
+    });
+  }
+
+  function renderEquation(s, r) {
+    document.getElementById("eqSym").textContent =
+      "T  =  tao\u00b7(nd+1)   +   nang\u00b7(trw+thwp)\u00b7nd\u00b7nf\u00b7nc   +   nang\u00b7nd\u00b7nf\u00b7nc\u00b7coadds\u00b7(itime + tread\u00b7(nread\u22121))";
+
+    var a = trimNum(s.tao) + "\u00b7(" + trimNum(s.nd) + "+1)";
+    var b = trimNum(s.nang) + "\u00b7(" + trimNum(s.trw) + "+" + trimNum(s.thwp) + ")\u00b7" +
+            trimNum(s.nd) + "\u00b7" + trimNum(s.nf) + "\u00b7" + trimNum(s.nc);
+    var c = trimNum(s.nang) + "\u00b7" + trimNum(s.nd) + "\u00b7" + trimNum(s.nf) + "\u00b7" +
+            trimNum(s.nc) + "\u00b7" + trimNum(s.coadds) + "\u00b7(" + trimNum(s.itime) +
+            " + " + trimNum(s.tread) + "\u00b7" + trimNum(s.nread - 1) + ")";
+
+    document.getElementById("eqNum").innerHTML =
+      "T  =  " + a + "   +   " + b + "   +   " + c + "\n" +
+      "   =  " + sec1(r.parts.ao) + "   +   " + sec1(r.parts.instr) + "   +   " +
+      sec1(r.parts.read + r.parts.integ) +
+      '\n   =  <span class="hl">' + sec1(r.total) + " s   =   " + min2(r.total) + " min</span>";
+  }
+
+  function render() {
+    var s = readState();
+    var r = compute(s);
+
+    document.getElementById("outElapsed").textContent = min2(r.total);
+    document.getElementById("outElapsedClock").textContent = clock(r.total);
+    document.getElementById("outInteg").textContent = min2(r.integ);
+    document.getElementById("outIntegSec").textContent =
+      sec1(r.integ) + " s across " + r.images + " image" + (r.images === 1 ? "" : "s");
+    document.getElementById("outEff").textContent = (r.eff * 100).toFixed(2);
+    document.getElementById("outOverhead").textContent = min2(r.total - r.integ) + " min overhead";
+
+    document.getElementById("railElapsed").textContent = min2(r.total);
+    document.getElementById("railEff").textContent = (r.eff * 100).toFixed(2);
+
+    document.getElementById("fImages").textContent = r.images;
+    document.getElementById("fPerImage").textContent = sec1(r.perImageDetector);
+    document.getElementById("fPerImageOh").textContent = sec1(r.perImageOverhead);
+
+    renderChart(r);
+    renderEquation(s, r);
+    syncPresets(s);
+    writeHash(s);
+
+    return { s: s, r: r };
+  }
+
+  // \u2500\u2500 presets \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  function syncPresets(s) {
+    Array.prototype.forEach.call(document.querySelectorAll(".preset"), function (b) {
+      var match = Number(b.dataset.val) === s[b.dataset.for];
+      b.setAttribute("aria-pressed", match ? "true" : "false");
+    });
+  }
+
+  // \u2500\u2500 URL state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  function writeHash(s) {
+    var parts = KEYS.filter(function (k) { return s[k] !== DEFAULTS[k]; })
+                    .map(function (k) { return k + "=" + trimNum(s[k]); });
+    var hash = parts.length ? "#" + parts.join("&") : "";
+    if (hash !== window.location.hash && (hash || window.location.hash)) {
+      history.replaceState(null, "", window.location.pathname + window.location.search + hash);
+    }
+  }
+
+  function readHash() {
+    var h = window.location.hash.replace(/^#/, "");
+    if (!h) { return; }
+    h.split("&").forEach(function (pair) {
+      var kv = pair.split("=");
+      var k = kv[0], v = Number(kv[1]);
+      if (el[k] && isFinite(v)) { el[k].value = String(v); }
+    });
+  }
+
+  // \u2500\u2500 summary text \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  function summaryText(s, r) {
+    var readMode = s.nread === 2 ? "CDS" : "MCDS-" + (s.nread / 2);
+    var lines = [
+      "NIRC2-Pol HWP cycle timing",
+      "",
+      "Cadence:  " + s.nd + " dither positions x " + s.nc + " HWP cycle" + (s.nc === 1 ? "" : "s") +
+        " x " + s.nang + " angles x " + s.nf + " frame" + (s.nf === 1 ? "" : "s") +
+        " = " + r.images + " images",
+      "Detector: " + s.coadds + " coadds x " + s.itime + " s, tread " + s.tread +
+        " s, nread " + s.nread + " (" + readMode + ")",
+      "",
+      "Total elapsed:      " + min2(r.total) + " min   (" + clock(r.total) + ")",
+      "On-sky integration: " + min2(r.integ) + " min   (" + clock(r.integ) + ")",
+      "Efficiency:         " + (r.eff * 100).toFixed(2) + "%",
+      "",
+      "Breakdown (seconds):"
+    ];
+    SEGMENTS.forEach(function (seg) {
+      var v = r.parts[seg.key];
+      lines.push("  " + (seg.name + "                              ").slice(0, 32) +
+        sec1(v) + " s  (" + (v / r.total * 100).toFixed(1) + "%)");
+    });
+    return lines.join("\n");
+  }
+
+  // \u2500\u2500 clipboard \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  var toast = document.getElementById("toast");
+  var toastTimer;
+
+  function flash(msg) {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 2000);
+  }
+
+  function copy(text, okMsg) {
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      var done = false;
+      try { done = document.execCommand("copy"); } catch (e) { done = false; }
+      document.body.removeChild(ta);
+      flash(done ? okMsg : "Copy blocked \u2014 select the text manually");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { flash(okMsg); }, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  // \u2500\u2500 wiring \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  buildChart();
+  readHash();
+  render();
+
+  KEYS.forEach(function (k) {
+    el[k].addEventListener("input", render);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".step"), function (b) {
+    b.addEventListener("click", function () {
+      var node = el[b.dataset.target];
+      var next = (Number(node.value) || 0) + Number(b.dataset.step);
+      var min = Number(node.min);
+      node.value = String(Math.max(min, next));
+      render();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".preset"), function (b) {
+    b.addEventListener("click", function () {
+      el[b.dataset.for].value = b.dataset.val;
+      render();
+    });
+  });
+
+  document.getElementById("btnReset").addEventListener("click", function () {
+    KEYS.forEach(function (k) { el[k].value = String(DEFAULTS[k]); });
+    render();
+    flash("Reset to defaults");
+  });
+
+  document.getElementById("btnCopy").addEventListener("click", function () {
+    var out = render();
+    copy(summaryText(out.s, out.r), "Summary copied");
+  });
+
+  document.getElementById("btnLink").addEventListener("click", function () {
+    render();
+    copy(window.location.href, "Link copied");
+  });
+
+  window.addEventListener("hashchange", function () {
+    readHash();
+    render();
+  });
+})();
+</script>
+</body>
+</html>

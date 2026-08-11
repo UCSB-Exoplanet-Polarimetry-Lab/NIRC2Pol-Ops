@@ -13,6 +13,7 @@ This repository contains scripts for efficiently operating the NIRC2 Polarimetry
 **Files in this repo**
 
 - [Folder] `Commissioning Analysis` = Various files and scripts from use in commissioning; kept as a "historical record"
+- [Folder] `docs` = Source for the observing time calculator, published via GitHub Pages
 - `Fast_Axis_Cal_Sequence.sh` = Takes data 0 to 180 deg in steps of 10 for use in finding the fast axis of a HWP.
 - `HWP_Rotation_Sequence.sh` = Used for typical observing sequences (four critical angles: 0, 45, 22.5, 67.5 deg)
 - `Internal_Pol_Cal_Sequence.sh` = Takes data rotating both HWP and IMR for instrumental polarization calibration
@@ -35,6 +36,28 @@ This repository contains scripts for efficiently operating the NIRC2 Polarimetry
 `bash Polarimetric_Flats.sh FILT=[filter]`
 
 See the Operations Guide below for a full description of these commands and their various options/keywords.
+
+**Observing time calculator**
+
+HWP cycling makes NIRC2-Pol considerably more expensive than straight imaging, so total elapsed time is worth estimating before a run. An interactive calculator is available at:
+
+**https://ucsb-exoplanet-polarimetry-lab.github.io/NIRC2Pol-Ops/**
+
+Its cadence inputs correspond to the keywords of `HWP_Rotation_Sequence.sh` (`NUM_EXPOSURES`, `HWP_CYCLES`). The underlying estimate is:
+
+```
+t_elapsed(sec) = 6*(ndither+1)
+               + 4*(12+1)*ndither*nframes*ncycles
+               + 4*ndither*nframes*ncycles*coadds*(itime + tread*(nread-1))
+```
+
+where `nframes` is the number of frames at each HWP angle, `tread` is the NIRC2 readout time (0.18 sec for the full 1024x1024 array; 0.05 sec for a 512x512 sub-array), and `nread` is the number of reads (2 for CDS, 2n for MCDS-n). The factor of 4 throughout is the four HWP angles in a cycle. The constants are:
+
+- **6 sec** = AO overhead during a dither (open loops, move telescope, reposition FSMs, reposition WFS focus, close TT loop, close DM loop)
+- **12 sec** = time to read and write a NIRC2 image including FITS information
+- **1 sec** = time for the HWP rotation command; the stage moves quickly, but this covers processing and sending the command
+
+Only `nread - 1` reads are charged, as the first is absorbed by the integration. These are planning estimates and exclude acquisition, focus, and calibration.
 
 **Operations/Observer's Guide**
 
