@@ -8,7 +8,13 @@ NIRC2-Pol enables polarimetric observations in JHKL’ bands in combination with
 
 **About this repository**
 
-This repository contains scripts for efficiently operating the NIRC2 Polarimetry mode. The most officially up-to-date versions of operations scripts will soon be transferred to and managed with Keck's internal SVN version control, where observatory staff will maintain them. Other repositories ([NIRC2-DPP](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-DPP), [pyPolCal](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/pyPolCal)) contain code related to data processing for the mode and instrumental polarization calibration.
+This repository contains scripts for efficiently operating the NIRC2 Polarimetry mode. The most officially up-to-date versions of operations scripts will soon be transferred to and managed with Keck's internal SVN version control, where observatory staff will maintain them.
+
+Related code lives in other repositories:
+
+- [NIRC2Pol-DPP](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-DPP) — data processing pipeline for the mode
+- [pyPolCal](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/pyPolCal) — instrumental polarization calibration. Archived release: [`doi:10.5281/zenodo.20752634`](https://doi.org/10.5281/zenodo.20752634)
+- [pyMuellerMat](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/pyMuellerMat) — Mueller matrix modelling. Archived release: [`doi:10.5281/zenodo.20752256`](https://doi.org/10.5281/zenodo.20752256)
 
 **Files in this repo**
 
