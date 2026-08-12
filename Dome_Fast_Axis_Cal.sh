@@ -1,20 +1,15 @@
 #!/usr/bin/env bash
 # hwp_rot_seq.sh — HWP (PCU rotator) movement with NIRC2 images
+# written by Rebecca Zhang (UCSB)
 
 # --------------------
 # Defaults (override with key=value args)
-ANGLES="0 45 22.5 67.5"          # list of HWP angles (deg)
+ANGLES="0 10 20 30 40 50 60 70 80 90 100 110 120 130 140 150 160 170 180"          # list of HWP angles (deg)
 TOL=0.05                         # degrees tolerance
 POLL=0.4                         # seconds between queries
 NUM_EXPOSURES=1                  # exposures per HWP angle
 HWP_CYCLES=1                     # number of HWP cycles
 #FILT=""
-
-# Additive offsets (currently unused)
-J_ADD=0
-H_ADD=0
-K_ADD=0
-L_ADD=0
 
 # Dither defaults
 DITHER=0                         # 0 = no dither (default), 1 = ABBA dither
@@ -26,7 +21,7 @@ DY=""
 TEST_MODE=0                      # 0 = normal, 1 = test (wait 30s instead of xy)
 
 # Track whether OBJ was set by user
-OBJ="test_pcu_rotation"
+OBJ="vortexlm_sky_flat"
 OBJ_FROM_ARGS=0
 
 print_usage() {
@@ -154,10 +149,12 @@ else
   echo "Using user-specified OBJ: $OBJ"
 fi
 
-# get base name of object (strip any trailing HWP/IMR metadata)
-BASE_OBJ="$OBJ"
-BASE_OBJ="${BASE_OBJ%%_hwp*}"
-BASE_OBJ="${BASE_OBJ%%_imr*}"
+# get base name of object (strip any trailing _hwp...)
+if [[ "$OBJ" == *_hwp* ]]; then
+  BASE_OBJ="${OBJ%%_hwp*}"
+else
+  BASE_OBJ="$OBJ"
+fi
 
 ### KTL CHANGE:
 if ! show -s pcu2 PCUPR >/dev/null 2>&1; then
@@ -199,6 +196,9 @@ fi
 show -s pcu2 PCURSTAT || true
 show -s pcu2 PCUPR || true
 
+##set imtype
+imtype calibration || exit 1
+
 # ----------------------------------------------------------------------
 # Helper: attempt a dither (test mode aware)
 # ----------------------------------------------------------------------
@@ -218,7 +218,7 @@ attempt_dither() {
 
 run_hwp_cycles() {
   local cycles="$1"
-  local cycle ang pos err label
+  local cycle ang pos err rfloat
 
   for ((cycle=1; cycle<=cycles; cycle++)); do
     echo "==== Starting HWP cycle $cycle of $cycles ===="
@@ -244,7 +244,8 @@ run_hwp_cycles() {
         sleep "$POLL"
       done
 
-      label="$BASE_OBJ"
+      rfloat=$(printf "%.1f" "$ang")
+      label="${BASE_OBJ}_hwp_${rfloat}"
 
       object "$label" || { echo "object failed ($label)"; break; }
       goi -s "$NUM_EXPOSURES" || { echo "goi failed ($label x$NUM_EXPOSURES)"; break; }
