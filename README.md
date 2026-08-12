@@ -6,18 +6,9 @@ NIRC2 Polarimetry (NIRC2-Pol, or nirc2p) is a dual-channel polarimetry mode on t
 
 NIRC2-Pol enables polarimetric observations in JHKL’ bands in combination with multiple existing NIRC2 modes, such as grism spectroscopy and high-contrast coronagraphic imaging, and both NGS and LGS AO. This is useful for many science cases, from solar system objects to circumstellar disks and active galactic nuclei. NIRC2-Pol was developed as part of the Precision Calibration Unit (PCU2) project on Keck II. 
 
-**About this repository**
+## About this repository
 
 This repository contains scripts for efficiently operating the NIRC2 Polarimetry mode. Many of these are ``helper'' scripts that the observer can use at their discretion by uploading them into their personal user folder on Keck servers. Only `HWP_Rotation_Sequence.sh` is available by default on the Keck networks/version control / is officially supported.
-
-**Operations/Observer's Guide**
-
-The NIRC2-Pol operations/observer's guide is available in two forms:
-
-- [Working copy](https://docs.google.com/document/d/1xZ5t1CYUM9_GUHD_lKeaxhGwf5xAPUc301j2dv2oiKI/edit?tab=t.v9hqfo1pspp7#heading=h.ej8cynj3sfoq) (Google Doc) — edited first, so normally the most current version. Start here when observing.
-- [Archived release](https://doi.org/10.5281/zenodo.20737935) (Zenodo, `doi:10.5281/zenodo.20737935`) — a citable snapshot of the working copy, published periodically. Use this one if a citation is needed.
-
-See also the [NIRC2 Observer's Manual](https://www2.keck.hawaii.edu/inst/nirc2/ObserversManual.html) for the instrument as a whole.
 
 **Files in this repo**
 
@@ -40,7 +31,16 @@ For the darks script: manually edit the first line to specify which folder it sh
 
 See the Operations Guide below for a full description of these commands and their various options/keywords.
 
-**Observing efficiency and SNR calculators**
+## Operations/Observer's Guide
+
+The NIRC2-Pol operations/observer's guide is available in two forms:
+
+- [Working copy](https://docs.google.com/document/d/1xZ5t1CYUM9_GUHD_lKeaxhGwf5xAPUc301j2dv2oiKI/edit?tab=t.v9hqfo1pspp7#heading=h.ej8cynj3sfoq) (Google Doc) — edited first, so normally the most current version. Start here when observing.
+- [Archived release](https://doi.org/10.5281/zenodo.20737935) (Zenodo, `doi:10.5281/zenodo.20737935`) — a citable snapshot of the working copy, published periodically. Use this one if a citation is needed.
+
+See also the [NIRC2 Observer's Manual](https://www2.keck.hawaii.edu/inst/nirc2/ObserversManual.html) for the instrument as a whole.
+
+## Observing efficiency and SNR calculators
 
 Planning observations with NIRC2-Pol? An interactive efficiency calculator is available at:
 
@@ -68,7 +68,7 @@ Similarly, we have implemented the framework for polarimetric high-contrast imag
 
 Note that this SNR calculator has _not_ yet been rigorously tested, so use at your own risk.
 
-**Citation and Acknowledgements**
+## Citation and Acknowledgements
 
 To acknowledge the use of the NIRC2 Polarimetry mode, including code from this repo, please cite Lewis et al. in prep (the NIRC2-Pol first light paper). See below for a BibTeX entry, which will be soon updated.
 ```
