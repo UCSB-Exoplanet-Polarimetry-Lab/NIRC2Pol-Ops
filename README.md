@@ -10,11 +10,14 @@ NIRC2-Pol enables polarimetric observations in JHKL’ bands in combination with
 
 This repository contains scripts for efficiently operating the NIRC2 Polarimetry mode. Many of these are ``helper'' scripts that the observer can use at their discretion by uploading them into their personal user folder on Keck servers. Only `HWP_Rotation_Sequence.sh` is available by default on the Keck networks/version control / is officially supported.
 
-Related code lives in other repositories:
+**Operations/Observer's Guide**
 
-- [NIRC2Pol-DPP](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-DPP) — data processing pipeline for the mode
-- [pyPolCal](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/pyPolCal) — instrumental polarization calibration. Archived release: [`doi:10.5281/zenodo.20752634`](https://doi.org/10.5281/zenodo.20752634)
-- [pyMuellerMat](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/pyMuellerMat) — Mueller matrix modelling. Archived release: [`doi:10.5281/zenodo.20752256`](https://doi.org/10.5281/zenodo.20752256)
+The NIRC2-Pol operations/observer's guide is available in two forms:
+
+- [Working copy](https://docs.google.com/document/d/1xZ5t1CYUM9_GUHD_lKeaxhGwf5xAPUc301j2dv2oiKI/edit?tab=t.v9hqfo1pspp7#heading=h.ej8cynj3sfoq) (Google Doc) — edited first, so normally the most current version. Start here when observing.
+- [Archived release](https://doi.org/10.5281/zenodo.20737935) (Zenodo, `doi:10.5281/zenodo.20737935`) — a citable snapshot of the working copy, published periodically. Use this one if a citation is needed.
+
+See also the [NIRC2 Observer's Manual](https://www2.keck.hawaii.edu/inst/nirc2/ObserversManual.html) for the instrument as a whole.
 
 **Files in this repo**
 
@@ -37,9 +40,9 @@ For the darks script: manually edit the first line to specify which folder it sh
 
 See the Operations Guide below for a full description of these commands and their various options/keywords.
 
-**Observing time calculator**
+**Observing efficiency and SNR calculators**
 
-Planning observations with NIRC2-Pol? An interactive calculator is available at:
+Planning observations with NIRC2-Pol? An interactive efficiency calculator is available at:
 
 **https://ucsb-exoplanet-polarimetry-lab.github.io/NIRC2Pol-Ops/efficiency-calc/**
 
@@ -59,14 +62,11 @@ where `nframes` is the number of frames at each HWP angle, `tread` is the NIRC2 
 
 Only `nread - 1` reads are charged, as the first is absorbed by the integration. These are planning estimates and exclude acquisition, focus, and calibration. This equation is based on the original NIRC2 equations for efficiency, but includes HWP cycling.
 
-**Operations/Observer's Guide**
+Similarly, we have implemented the framework for polarimetric high-contrast imaging SNR from Nguyen, M. M., Jensen-Clem, R., Millar-Blanchaer, M. A., Mukherjee, S., Skemer, A. & Wang, J. 2021, “An exposure time calculator for high-contrast polarimeters,” Proc. SPIE 11823, 118231X, [doi:10.1117/12.2597978](https://doi.org/10.1117/12.2597978). By inputting your target's magnitude and expected polarization, plus a target SNR and exposure settings, you can figure out what observations are needed to reach your goals. You can find this SNR calculator at:
 
-The NIRC2-Pol operations/observer's guide is available in two forms:
+**https://ucsb-exoplanet-polarimetry-lab.github.io/NIRC2Pol-Ops/exposure-time-calc/**
 
-- [Working copy](https://docs.google.com/document/d/1xZ5t1CYUM9_GUHD_lKeaxhGwf5xAPUc301j2dv2oiKI/edit?tab=t.v9hqfo1pspp7#heading=h.ej8cynj3sfoq) (Google Doc) — edited first, so normally the most current version. Start here when observing.
-- [Archived release](https://doi.org/10.5281/zenodo.20737935) (Zenodo, `doi:10.5281/zenodo.20737935`) — a citable snapshot of the working copy, published periodically. Use this one if a citation is needed.
-
-See also the [NIRC2 Observer's Manual](https://www2.keck.hawaii.edu/inst/nirc2/ObserversManual.html) for the instrument as a whole.
+Note that this SNR calculator has _not_ yet been rigorously tested, so use at your own risk.
 
 **Citation and Acknowledgements**
 
@@ -81,6 +81,15 @@ To acknowledge the use of the NIRC2 Polarimetry mode, including code from this r
 
 If using the NIRC2-Pol DPP and/or the Mueller matrix model of the instrument (both currently under development), there will be SPIE proceedings for those coming Summer 2026--Lewis et al. 2026 and Zhang et al. 2026, respectively.
 
+**Related Code**
+
+Related code lives in other repositories:
+
+- [NIRC2Pol-DPP](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-DPP) — data processing pipeline for the mode
+- [pyPolCal](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/pyPolCal) — instrumental polarization calibration. Archived release: [`doi:10.5281/zenodo.20752634`](https://doi.org/10.5281/zenodo.20752634)
+- [pyMuellerMat](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/pyMuellerMat) — Mueller matrix modelling. Archived release: [`doi:10.5281/zenodo.20752256`](https://doi.org/10.5281/zenodo.20752256)
+
+---------------------------
 NIRC2-Pol PI: Max Millar-Blanchaer (UCSB)
 NIRC2-Pol Core Team: Briley Lewis, Rebecca Zhang (UCSB); Jayke Nguyen (UCSD)
 Contact: Briley Lewis, brileylewis@ucsb.edu
