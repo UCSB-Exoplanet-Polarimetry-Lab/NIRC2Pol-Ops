@@ -1,6 +1,6 @@
 # NIRC2-Pol Operations Software
 
-Last Updated: 12 Aug 2026
+Last Updated: 14 Aug 2026
 
 NIRC2 Polarimetry (NIRC2-Pol, or nirc2p) is a dual-channel polarimetry mode on the Keck II NIRC2 infrared imager. Dual-channel polarimetry uses a polarizing beamsplitter to split the incoming light into two orthogonal polarization states, and a half-wave plate (HWP) to modulate the angle of polarization. Through cycles of four critical HWP angles (0°, 45°, 22.5°, 67.5°), it is possible to recover the linear Stokes vector components Q and U (see de Boer+ 2020 for a description of dual-channel polarimetry and double differencing). 
 
@@ -89,7 +89,12 @@ Related code lives in other repositories:
 - [pyPolCal](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/pyPolCal) — instrumental polarization calibration. Archived release: [`doi:10.5281/zenodo.20752634`](https://doi.org/10.5281/zenodo.20752634)
 - [pyMuellerMat](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/pyMuellerMat) — Mueller matrix modelling. Archived release: [`doi:10.5281/zenodo.20752256`](https://doi.org/10.5281/zenodo.20752256)
 
+Some of the data presented herein were obtained at Keck Observatory, which is a private 501(c)3 non-profit organization operated as a scientific partnership among the California Institute of Technology, the University of California, and the National Aeronautics and Space Administration. The Observatory was made possible by the generous financial support of the W. M. Keck Foundation. The authors wish to recognize and acknowledge the very significant cultural role and reverence that the summit of Maunakea has always had within the Native Hawaiian community. We are most fortunate to have the opportunity to conduct observations from this mountain.
+
+This material is based upon work supported by the National Science Foundation Astronomy \& Astrophysics Postdoctoral Fellowship Award No. 2401654. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of the National Science Foundation. This work was also supported by the Mt. Cuba Astronomical Foundation and the University of California Observatories Mini-Grant Program.
+
 ---------------------------
 NIRC2-Pol PI: Max Millar-Blanchaer (UCSB)
-NIRC2-Pol Core Team: Briley Lewis, Rebecca Zhang (UCSB); Jayke Nguyen (UCSD)
+NIRC2-Pol Team: Briley Lewis, Rebecca Zhang (UCSB); Jayke Nguyen (UCSD); Ryan Hersey, Thomas McIntosh, Jaren Ashcraft (UCSB); Will Melby (U of A); Mike Fitzgerald (UCLA); Dimitri Mawet, Nem Jovanovic, Keith Matthews (Caltech)
+PCU2 Team: Jessica Lu, Charles-Antoine Claveau, Matthew Freeman (Berkeley); Eduardo Marin, Scott Lilley, Ed Wetherell, Jacob Taylor, Mahawa Cisse, Lauren Simmons, Carlos Alvarez, Percy Gomez, Max Service, Trisha Hammen, Jim Lyke, Greg Doppmann (Keck)
 Contact: Briley Lewis, brileylewis@ucsb.edu
