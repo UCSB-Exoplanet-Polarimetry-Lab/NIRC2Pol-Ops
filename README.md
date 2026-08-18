@@ -79,7 +79,33 @@ To acknowledge the use of the NIRC2 Polarimetry mode, including code from this r
 }
 ```
 
-If using the NIRC2-Pol DPP and/or the Mueller matrix model of the instrument (both currently under development), there will be SPIE proceedings for those coming Summer 2026--Lewis et al. 2026 and Zhang et al. 2026, respectively.
+If using the NIRC2-Pol DPP and/or the Mueller matrix model of the instrument (both currently under development), use the following citations:
+
+NIRC2-Pol DPP design SPIE proceeding (Lewis et al. 2026a)
+```
+@misc{lewis2026opensourcedataprocessingpipeline,
+      title={An open-source data processing pipeline for Keck / NIRC2-Polarimetry}, 
+      author={Briley L. Lewis and Maxwell A. Millar-Blanchaer and Rebecca Zhang and Jayke Nguyen and Max Brodheim and Ashish Uhlmann},
+      year={2026},
+      eprint={2608.14864},
+      archivePrefix={arXiv},
+      primaryClass={astro-ph.IM},
+      url={https://arxiv.org/abs/2608.14864}, 
+}
+```
+
+NIRC2-Pol preliminary Mueller matrix model calibration SPIE proceeding (Zhang et al. 2026)
+```
+@misc{zhang2026enablingquantitativepolarimetrykecknirc2,
+      title={Enabling Quantitative Polarimetry for Keck/NIRC2: Preliminary Mueller Matrix Model Calibration}, 
+      author={Manxuan Zhang and Briley L. Lewis and Maxwell A. Millar-Blanchaer and Eduardo Marin and Jayke S. Nguyen and William Melby and Carlos Alvarez and Jaren N. Ashcraft and Mahawa Cisse and Charles-Antoine Claveau and Jacques-Robert Delorme and Greg Doppmann and Michael P. Fitzgerald and Matthew Freeman and Percy Gomez and Trisha Hammen and Ryan Hersey and Nemanja Jovanovic and Marc Kassis and Scott Lilley and Jessica Lu and James E. Lyke and Keith Matthews and Dimitri Mawet and Thomas McIntosh and Max Service and Lauren Simmons and Jacob Taylor and Rob G. van Holstein and Ed Wetherell},
+      year={2026},
+      eprint={2608.14873},
+      archivePrefix={arXiv},
+      primaryClass={astro-ph.IM},
+      url={https://arxiv.org/abs/2608.14873}, 
+}
+```
 
 **Related Code**
 
