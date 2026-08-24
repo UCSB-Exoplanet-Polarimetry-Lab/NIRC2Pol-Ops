@@ -72,16 +72,6 @@ Finally, polarimetric efficiency depends on the image rotator (IMR) bench angle,
 
 **https://ucsb-exoplanet-polarimetry-lab.github.io/NIRC2Pol-Ops/imr-angle-calc/**
 
-It encodes the rotator relations from [issue #185](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-Ops/issues/185), where `D` is the bench/OBRT angle:
-
-```
-stationary   command = 2*D - 0.7
-vertang      command = 2*D - 0.7 - EL
-posang       command = 2*D - 0.7 +/- PARANG - EL
-```
-
-The factor of two is the K-mirror — the sky rotates twice as fast as the mechanism — and 0.7° is NIRC2's `INSTANGL`. NIRC2 sits at a Nasmyth focus, so the field rotates with elevation: `vertang` holds the image fixed to the horizon and compensates elevation alone, while `posang` holds it fixed on sky and compensates the parallactic angle as well. Only the stationary and vertang forms have been confirmed on sky — **the sign of the parallactic term in posang is still untested**, so the page offers both and flags the mode accordingly. The efficiency curves are the commissioning measurements from Lewis et al. in prep. (2026), the NIRC2-Pol first light paper (see [issue #118](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-Ops/issues/118)); they are digitized from the summary plot and so approximate to about ±0.02. The page also keeps the AO `OBRT` value non-negative throughout a sequence: every 180° of bench angle is the same K-mirror orientation, so it picks the lowest equivalent that stays at or above zero for the whole window.
-
 ## Citation and Acknowledgements
 
 To acknowledge the use of the NIRC2 Polarimetry mode, including code from this repo, please cite Lewis et al. in prep (the NIRC2-Pol first light paper). See below for a BibTeX entry, which will be soon updated.
