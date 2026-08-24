@@ -1,0 +1,2160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Work out the image rotator starting angle for a NIRC2-Pol observation on Keck II, so the sequence passes through peak polarimetric efficiency at its midpoint.">
+<title>NIRC2-Pol IMR Starting Angle</title>
+
+<style>
+  /* ─── tokens ─────────────────────────────────────────────────────────── */
+  /* Kept in step with ../index.html and ../efficiency-calc/index.html so the
+     published tools read as one site. */
+  :root {
+    --ground:      #E7EAEF;
+    --surface:     #FFFFFF;
+    --surface-sunk:#F1F3F7;
+    --ink:         #12151C;
+    --ink-2:       #3C4453;
+    --muted:       #5B6374;
+    --line:        #D5DAE3;
+    --line-soft:   #E3E7EE;
+    --accent:      #A8341F;
+    --accent-soft: #F6E6E1;
+    --focus:       #A8341F;
+
+    --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, Georgia, serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --r-card: 10px;
+    --r-field: 7px;
+
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:      #0D1016;
+      --surface:     #171C24;
+      --surface-sunk:#111620;
+      --ink:         #E3E7EF;
+      --ink-2:       #B7C0CE;
+      --muted:       #8996A8;
+      --line:        #29323F;
+      --line-soft:   #212934;
+      --accent:      #FF7A66;
+      --accent-soft: #2A1A17;
+      --focus:       #FF7A66;
+    }
+  }
+
+  /* the viewer's toggle must win over the media query in both directions */
+  :root[data-theme="dark"] {
+    --ground:      #0D1016;
+    --surface:     #171C24;
+    --surface-sunk:#111620;
+    --ink:         #E3E7EF;
+    --ink-2:       #B7C0CE;
+    --muted:       #8996A8;
+    --line:        #29323F;
+    --line-soft:   #212934;
+    --accent:      #FF7A66;
+    --accent-soft: #2A1A17;
+    --focus:       #FF7A66;
+    color-scheme: dark;
+  }
+
+  :root[data-theme="light"] {
+    --ground:      #E7EAEF;
+    --surface:     #FFFFFF;
+    --surface-sunk:#F1F3F7;
+    --ink:         #12151C;
+    --ink-2:       #3C4453;
+    --muted:       #5B6374;
+    --line:        #D5DAE3;
+    --line-soft:   #E3E7EE;
+    --accent:      #A8341F;
+    --accent-soft: #F6E6E1;
+    --focus:       #A8341F;
+    color-scheme: light;
+  }
+
+  /* ─── base ───────────────────────────────────────────────────────────── */
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 20px 72px;
+  }
+
+  /* ─── header ─────────────────────────────────────────────────────────── */
+  .masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 24px;
+    padding: 44px 0 26px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 26px;
+  }
+
+  .masthead-text { flex: 1 1 380px; min-width: 0; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(30px, 4.6vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .masthead nav {
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    display: flex;
+    gap: 16px;
+  }
+
+  .masthead nav a {
+    color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  /* ─── layout ─────────────────────────────────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .col-in { display: grid; gap: 22px; }
+  .col-out { display: grid; gap: 22px; }
+
+  /* ─── cards ──────────────────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 20px;
+    min-width: 0;
+  }
+
+  .card > h2 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .card-note {
+    color: var(--muted);
+    font-size: 12.5px;
+    margin: 0 0 18px;
+  }
+
+  .fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0 0 22px;
+    display: grid;
+    gap: 14px;
+  }
+
+  .fieldset:last-of-type { margin-bottom: 0; }
+
+  .fieldset > legend {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 0 0 10px;
+    margin: 0;
+    float: left;
+    width: 100%;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .fieldset > legend + * { margin-top: 12px; }
+
+  /* ─── fields ─────────────────────────────────────────────────────────── */
+  .field { display: grid; gap: 5px; min-width: 0; }
+
+  .field > label {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+
+  /* Not scoped to .field: several hints sit directly in a fieldset or in an
+     .adv-body, and scoping left those rendering at full body size. */
+  .hint {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .control { display: flex; align-items: stretch; gap: 6px; }
+
+  input[type="number"], select {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-field);
+    padding: 8px 10px;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  select { font-family: var(--font-ui); appearance: auto; }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input:focus-visible, select:focus-visible,
+  button:focus-visible, summary:focus-visible, a:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  input[type="number"][aria-invalid="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .step {
+    flex: 0 0 auto;
+    width: 32px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1;
+    color: var(--ink-2);
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-field);
+    cursor: pointer;
+  }
+
+  .step:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+  .unit {
+    flex: 0 0 auto;
+    align-self: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .check {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+
+  .check input {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 3px 0 0;
+    accent-color: var(--accent);
+  }
+
+  /* segmented presets */
+  .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+
+  .preset {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 9px;
+    cursor: pointer;
+  }
+
+  .preset:hover { color: var(--accent); border-color: var(--accent); }
+
+  .preset[aria-pressed="true"] {
+    color: var(--surface);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* ─── advanced disclosure ────────────────────────────────────────────── */
+  details.adv {
+    border-top: 1px solid var(--line-soft);
+    margin-top: 20px;
+    padding-top: 14px;
+  }
+
+  details.adv > summary {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  details.adv > summary::-webkit-details-marker { display: none; }
+
+  details.adv > summary::before {
+    content: "+";
+    font-size: 13px;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  details.adv[open] > summary::before { content: "\2212"; }
+
+  details.adv > summary:hover { color: var(--accent); }
+
+  .adv-body { display: grid; gap: 14px; margin-top: 16px; }
+
+  /* ─── readout tiles ──────────────────────────────────────────────────── */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    overflow: hidden;
+  }
+
+  @media (max-width: 560px) {
+    .tiles { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  /* Side by side, the labels are not all the same length, so reserve two
+     lines and keep the three numbers on one baseline. Stacked, they each
+     get exactly the room they need. */
+  @media (min-width: 561px) {
+    .tile-label { min-height: 3.1em; }
+  }
+
+  .tile { background: var(--surface); padding: 18px 20px; min-width: 0; }
+
+  .tile-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+
+  .tile-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(24px, 3.4vw, 31px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+  }
+
+  .tile.lead .tile-value { color: var(--accent); }
+
+  .tile-value .u { font-size: 14px; letter-spacing: 0; color: var(--muted); }
+
+  .tile-sub {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin: 8px 0 0;
+  }
+
+  .verdict {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 8px 0 0;
+  }
+
+  .verdict.yes { color: var(--accent); }
+  .verdict.no  { color: var(--muted); }
+
+  /* ─── tables ─────────────────────────────────────────────────────────── */
+  .ledger { width: 100%; border-collapse: collapse; }
+
+  .ledger caption {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+  }
+
+  .ledger th, .ledger td {
+    text-align: right;
+    padding: 7px 0 7px 18px;
+    border-bottom: 1px solid var(--line-soft);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  .ledger tbody th {
+    text-align: left;
+    font-weight: 400;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    width: 99%;
+    white-space: normal;
+    padding-left: 0;
+  }
+
+  .ledger thead th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom-color: var(--line);
+  }
+
+  .ledger thead th.col-name { text-align: left; width: 99%; padding-left: 0; }
+
+  .ledger tbody tr:last-child th,
+  .ledger tbody tr:last-child td { border-bottom: 0; }
+
+  .ledger tr.dominant th, .ledger tr.dominant td { color: var(--accent); }
+
+  /* ─── charts ─────────────────────────────────────────────────────────── */
+  .plots { display: grid; gap: 22px; }
+
+  .plot-box { overflow-x: auto; }
+
+  .chart { width: 100%; height: auto; display: block; }
+
+  .chart-title { fill: var(--ink); font-size: 12.5px; font-family: var(--font-ui); font-weight: 600; }
+  .chart-empty { fill: var(--muted); font-size: 12.5px; font-family: var(--font-ui); }
+  .tick { fill: var(--muted); font-size: 10px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .axis-label { fill: var(--muted); font-size: 11px; font-family: var(--font-ui); }
+  .readout { fill: var(--ink); font-size: 10.5px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .gridline { stroke: var(--line-soft); stroke-width: 1; }
+  .axisline { stroke: var(--line); stroke-width: 1.25; }
+  .marker { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+  .threshold { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+
+  /* ─── equation ───────────────────────────────────────────────────────── */
+  .eq { display: grid; gap: 12px; }
+
+  .eq-row { overflow-x: auto; padding-bottom: 2px; }
+
+  .eq-row code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: pre;
+    display: block;
+  }
+
+  .eq-sym code { color: var(--muted); }
+  .eq-num code { color: var(--ink); }
+  .eq-num .hl { color: var(--accent); }
+
+  .eq-legend {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 4px 0 0;
+    padding-left: 18px;
+  }
+
+  .eq-legend li { margin-bottom: 3px; }
+
+  /* ─── notes ──────────────────────────────────────────────────────────── */
+  .notes summary {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .notes summary::-webkit-details-marker { display: none; }
+
+  .notes summary::before {
+    content: "+";
+    font-size: 13px;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  .notes details[open] > summary::before { content: "\2212"; }
+  .notes details[open] > summary { margin-bottom: 16px; }
+  .notes summary:hover { color: var(--accent); }
+
+  .notes ol { padding-left: 18px; margin: 0; font-size: 13px; color: var(--muted); }
+  .notes li { margin-bottom: 11px; }
+  .notes li:last-child { margin-bottom: 0; }
+  .notes strong { color: var(--ink-2); font-weight: 600; }
+
+  /* ─── mobile summary rail ────────────────────────────────────────────── */
+  .rail {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    gap: 18px;
+    align-items: baseline;
+    padding: 10px 20px;
+    margin: 0 -20px 18px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  .rail b { color: var(--accent); font-weight: 600; font-size: 15px; }
+  .rail span { color: var(--ink); }
+
+  @media (max-width: 900px) { .rail { display: flex; } }
+
+  /* ─── footer ─────────────────────────────────────────────────────────── */
+  .colophon {
+    margin-top: 34px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--muted);
+    max-width: 78ch;
+  }
+
+  .colophon a {
+    color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  .colophon p { margin: 0 0 9px; }
+  .colophon p:last-child { margin-bottom: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  /* ─── page-specific ──────────────────────────────────────────────────── */
+
+  /* The text/date/time inputs the shared sheet doesn't cover. Kept visually
+     identical to input[type="number"] above. */
+  input[type="text"], input[type="date"], input[type="time"] {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-field);
+    padding: 8px 10px;
+  }
+
+  input[type="text"][aria-invalid="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .btn {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: var(--ink-2);
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-field);
+    padding: 7px 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn:hover { color: var(--accent); border-color: var(--accent); }
+  .btn[disabled] { opacity: 0.55; cursor: default; }
+  .btn[disabled]:hover { color: var(--ink-2); border-color: var(--line); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+
+  .kw {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 3px;
+    padding: 1px 4px;
+    white-space: nowrap;
+  }
+
+  /* Resolver feedback under the name field. */
+  .status { font-size: 11.5px; font-family: var(--font-mono); margin: 0; min-height: 1.4em; }
+  .status.ok   { color: var(--muted); }
+  .status.bad  { color: var(--accent); }
+  .status.busy { color: var(--muted); }
+
+  /* The one number the observer actually types at the telescope. */
+  .cmd {
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 18px 20px;
+    margin: 0 0 18px;
+  }
+
+  .cmd code {
+    display: block;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(19px, 3.2vw, 26px);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: var(--accent);
+    word-break: break-word;
+  }
+
+  .cmd .cmd-sub {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    margin: 10px 0 0;
+  }
+
+  /* Caveats that must not be missed: the unverified posang sign, elevation
+     limits, the +360 shift. */
+  .banner {
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: var(--r-field);
+    padding: 11px 14px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    margin: 0 0 18px;
+  }
+
+  .banner b { color: var(--accent); }
+
+  /* Context rather than a change to the command. */
+  .banner.note { border-color: var(--line); background: var(--surface-sunk); }
+  .banner.note b { color: var(--ink-2); }
+  .banner a { color: var(--accent); }
+  .banner p { margin: 0 0 6px; }
+  .banner p:last-child { margin-bottom: 0; }
+  .banner[hidden] { display: none; }
+
+  .warns { display: grid; gap: 8px; margin: 0 0 18px; }
+  .warns:empty { display: none; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin: 0 0 4px;
+  }
+
+  .legend i { display: inline-block; width: 16px; height: 0; border-top-width: 2px; margin-right: 5px; vertical-align: middle; }
+  .legend .s1 { border-top: 2px solid var(--accent); }
+  .legend .s2 { border-top: 2px dashed var(--muted); }
+
+  .ledger td.na { color: var(--muted); }
+
+  /* Nine mono columns are wider than a phone; keep the overflow inside the
+     table rather than letting the whole page scroll sideways. */
+  .table-box { overflow-x: auto; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--ink);
+    color: var(--ground);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 9px 16px;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease;
+    z-index: 20;
+  }
+
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .colophon code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--surface-sunk);
+    border: 1px solid var(--line-soft);
+    border-radius: 3px;
+    padding: 1px 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-text">
+      <p class="eyebrow">Keck II &middot; NIRC2 &middot; polarimetry</p>
+      <h1>IMR Starting Angle Calculator</h1>
+    </div>
+    <nav>
+      <a href="../">All tools</a>
+      <a href="../efficiency-calc/">HWP cycle timing</a>
+      <a href="../exposure-time-calc/">Exposure time</a>
+    </nav>
+  </header>
+
+  <div class="rail">
+    <span>Command <b id="railCmd">&mdash;</b></span>
+    <span>Swing <b id="railSwing">&mdash;</b>&deg;</span>
+  </div>
+
+  <div class="grid">
+
+    <!-- ── inputs ───────────────────────────────────────────────────── -->
+    <div class="col-in">
+
+      <section class="card">
+        <h2>Target</h2>
+        <p class="card-note">Look the target up, or type coordinates straight in.</p>
+
+        <fieldset class="fieldset">
+          <div class="field">
+            <label for="name">Name</label>
+            <div class="control">
+              <input type="text" id="name" value="AB Aur" autocomplete="off" spellcheck="false">
+              <button class="btn" type="button" id="btnResolve">Resolve</button>
+            </div>
+            <p class="status ok" id="resolveStatus"></p>
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="ra">RA</label>
+              <div class="control"><input type="text" id="ra" value="04 55 45.85" autocomplete="off" spellcheck="false"></div>
+            </div>
+            <div class="field">
+              <label for="dec">Dec</label>
+              <div class="control"><input type="text" id="dec" value="+30 33 04.3" autocomplete="off" spellcheck="false"></div>
+            </div>
+          </div>
+          <p class="hint">Sexagesimal (<span class="mono">04 55 45.85</span> / <span class="mono">+30 33 04.3</span>)
+            when spaces or colons are present, decimal degrees otherwise. RA sexagesimal is
+            in hours, Dec in degrees. Editing either field by hand clears any resolved
+            proper motion.</p>
+        </fieldset>
+      </section>
+
+      <section class="card">
+        <h2>Observation</h2>
+        <p class="card-note">Every value updates the readout immediately.</p>
+
+        <fieldset class="fieldset">
+          <div class="row-2">
+            <div class="field">
+              <label for="date">Start date</label>
+              <div class="control"><input type="date" id="date"></div>
+            </div>
+            <div class="field">
+              <label for="time">Start time</label>
+              <div class="control"><input type="text" id="time" value="10:00" inputmode="numeric"
+                placeholder="HH:MM" maxlength="5" autocomplete="off" spellcheck="false"></div>
+            </div>
+          </div>
+          <div class="presets" id="scalePresets">
+            <button class="preset" type="button" data-for="scale" data-val="UT">UT</button>
+            <button class="preset" type="button" data-for="scale" data-val="HST">HST</button>
+          </div>
+          <p class="hint">24-hour clock. HST is UTC&minus;10 year round &mdash; Hawaii does
+            not observe daylight saving, so a UT date rolls over at 14:00 HST.</p>
+
+          <div class="field">
+            <label for="dur">Sequence length</label>
+            <div class="control">
+              <button class="step" type="button" data-step="-5" data-target="dur" aria-label="Decrease sequence length">&minus;</button>
+              <input type="number" id="dur" min="1" max="720" step="1" value="60">
+              <button class="step" type="button" data-step="5" data-target="dur" aria-label="Increase sequence length">+</button>
+              <span class="unit">min</span>
+            </div>
+            <p class="hint">Total elapsed time on target. The
+              <a href="../efficiency-calc/">HWP cycle time calculator</a> works this out from
+              your dither and cycle counts.</p>
+          </div>
+
+          <div class="actions">
+            <button class="btn" type="button" id="btnTransit">Centre window on transit</button>
+          </div>
+        </fieldset>
+      </section>
+
+      <section class="card">
+        <h2>Rotator</h2>
+        <p class="card-note">Mode determines how the bench angle drifts while you track.</p>
+
+        <fieldset class="fieldset">
+          <div class="field">
+            <label for="mode">Tracking mode</label>
+            <div class="control">
+              <select id="mode">
+                <option value="vertang">vertang &mdash; fixed to the horizon</option>
+                <option value="posang">posang &mdash; fixed on sky</option>
+                <option value="stationary">stationary &mdash; rotator parked</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="band">Filter band</label>
+            <div class="control">
+              <select id="band">
+                <option value="J">J</option>
+                <option value="H" selected>H</option>
+                <option value="K">K</option>
+                <option value="L">L</option>
+              </select>
+            </div>
+            <p class="hint">Selects which measured efficiency curve is used.</p>
+          </div>
+        </fieldset>
+
+        <details class="adv">
+          <summary>Advanced</summary>
+          <div class="adv-body">
+            <div class="field">
+              <label for="tgt">Target bench angle</label>
+              <div class="control">
+                <input type="number" id="tgt" min="0" max="180" step="0.5" value="45">
+                <span class="unit">deg</span>
+              </div>
+              <p class="hint">The bench angle the sequence should pass through at its
+                midpoint. 45&deg; is peak for J and H, and within the flat top for K.</p>
+            </div>
+
+            <div class="field">
+              <label for="sign">posang parallactic sign</label>
+              <div class="control">
+                <select id="sign">
+                  <option value="1">+ PARANG</option>
+                  <option value="-1">&minus; PARANG</option>
+                </select>
+              </div>
+              <p class="hint">Untested on sky &mdash; see
+                <a href="https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-Ops/issues/185">issue&nbsp;185</a>.
+                Ignored in vertang and stationary.</p>
+            </div>
+          </div>
+        </details>
+
+        <div class="actions">
+          <button class="btn" type="button" id="btnReset">Reset to defaults</button>
+          <button class="btn" type="button" id="btnLink">Copy link to this setup</button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ── outputs ──────────────────────────────────────────────────── -->
+    <div class="col-out">
+
+      <section class="card">
+        <h2>Command to issue</h2>
+        <p class="card-note">Send this once, at the start of the sequence, after the target
+          is acquired and tracking.</p>
+
+        <div class="banner" id="signBanner" hidden></div>
+        <div class="warns" id="warns"></div>
+
+        <div class="cmd">
+          <code id="cmdText">&mdash;</code>
+          <p class="cmd-sub" id="cmdSub"></p>
+        </div>
+
+        <div class="tiles">
+          <div class="tile lead">
+            <p class="tile-label">IMR bench angle at midpoint</p>
+            <p class="tile-value"><span id="tMid">&mdash;</span><span class="u">deg</span></p>
+            <p class="tile-sub" id="tMidSub"></p>
+          </div>
+          <div class="tile">
+            <p class="tile-label">IMR angle swing</p>
+            <p class="tile-value"><span id="tSwing">&mdash;</span><span class="u">deg</span></p>
+            <p class="tile-sub" id="tSwingSub"></p>
+          </div>
+          <div class="tile">
+            <p class="tile-label">Relative efficiency</p>
+            <p class="tile-value"><span id="tEff">&mdash;</span></p>
+            <p class="tile-sub" id="tEffSub"></p>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" type="button" id="btnCopyCmd">Copy command</button>
+          <button class="btn" type="button" id="btnCopy">Copy summary</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Across the sequence</h2>
+        <p class="card-note">Where the target is, and what the rotator does, at each third
+          of the window.</p>
+        <div class="table-box">
+        <table class="ledger">
+          <caption>Sky track and bench angle</caption>
+          <thead>
+            <tr>
+              <th class="col-name">Point</th>
+              <th>UT</th><th>HST</th><th>HA</th><th>EL</th><th>AZ</th><th>PA</th><th>Airm.</th><th>Bench</th><th>Eff.</th>
+            </tr>
+          </thead>
+          <tbody id="ledgerBody"></tbody>
+        </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Plots</h2>
+        <p class="legend" id="plotLegend"></p>
+        <div class="plots">
+          <div class="plot-box" id="plotBench"></div>
+          <div class="plot-box" id="plotEff"></div>
+        </div>
+      </section>
+
+      <section class="card notes">
+        <details>
+        <summary>How this is worked out</summary>
+        <ol>
+          <li><strong>The rotator relations.</strong> From
+            <a href="https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-Ops/issues/185">issue&nbsp;185</a>,
+            the <span class="mono">rotate</span> command needed to reach a bench angle
+            <span class="mono">D</span> is <span class="mono">2D &minus; 0.7</span> in
+            stationary, <span class="mono">2D &minus; 0.7 &minus; EL</span> in vertang, and
+            <span class="mono">2D &minus; 0.7 &plusmn; PARANG &minus; EL</span> in posang. The
+            factor of two is the K-mirror &mdash; the sky rotates twice as fast as the
+            mechanism &mdash; and 0.7&deg; is NIRC2's <span class="kw">INSTANGL</span>. Only
+            the stationary and vertang forms have been confirmed on sky.</li>
+
+          <li><strong>Solving for the start.</strong> Inverting the relation above gives
+            <span class="mono">bench(t) = (C + 0.7 + EL(t) &minus; s&middot;PARANG(t)) / 2</span>
+            for a fixed command <span class="mono">C</span>. The page picks the
+            <span class="mono">C</span> that puts the bench on the target angle at the
+            midpoint of the window, so the sequence spends as much time as possible near
+            peak.</li>
+
+          <li><strong>Never a negative OBRT.</strong> Every 180&deg; of bench is the same
+            K-mirror orientation, so the target angle plus any multiple of 180&deg; is an
+            equally good place to sit &mdash; each reached by adding the matching multiple of
+            360&deg; to the command. The page takes the lowest one that keeps
+            <span class="mono">AO.OBRT</span> at or above zero for the whole window, not just
+            at the midpoint, since a long sequence can be comfortable in the middle and dip
+            below zero at one end. When it has had to go up a turn it says so, and the bench
+            angles reported throughout are the OBRT values you should actually read back.</li>
+
+          <li><strong>Efficiency.</strong> The curves are the commissioning measurements of
+            normalized modulation amplitude against IMR angle, from Lewis et&nbsp;al. in prep.
+            (2026), the NIRC2-Pol first light paper. They are digitized from the summary plot
+            &mdash; approximate to about &plusmn;0.02, and sampled only over 0&ndash;150&deg;
+            (0&ndash;90&deg; in K). Values in the unsampled stretch back
+            round to 0&deg; are drawn dashed and marked as extrapolated. No 90&deg;
+            periodicity is assumed; the data does not cleanly support it.</li>
+
+          <li><strong>Pointing limits are only flagged, not modelled.</strong> Keck II's
+            accessible sky is not a simple elevation cut: across azimuths of about
+            185&deg;&ndash;333&deg;, south through west, the telescope runs into the Nasmyth
+            deck and the floor rises to roughly 37&deg;, while elsewhere it is 18&deg;
+            unvignetted and vignetted below that. The upper limit is 89.5&deg;, and stable
+            guiding is not guaranteed for targets transiting above about 85&deg;. The page
+            checks those documented values and raises a flag &mdash; treat a warning as a
+            prompt to go and read the
+            <a href="https://www2.keck.hawaii.edu/inst/common/TelLimits.html">Keck pointing
+            limits</a>, and the absence of one as no guarantee. Nor is any of this a check on
+            whether the target is worth observing: darkness is flagged from the Sun's
+            elevation, but the Moon, the weather and the azimuth wrap are not considered.</li>
+
+          <li><strong>Positions.</strong> Coordinates are taken as ICRS/J2000, moved by
+            proper motion to the epoch of observation and precessed to the mean equinox of
+            date. Elevation and parallactic angle are computed for Keck
+            (19.8283&deg;&nbsp;N, 155.4783&deg;&nbsp;W, 4160&nbsp;m). Nutation, aberration
+            and refraction are neglected &mdash; all well under 0.02&deg; here, far below the
+            uncertainty in the rotator relations themselves.</li>
+        </ol>
+        </details>
+      </section>
+
+    </div>
+  </div>
+
+  <footer class="colophon">
+    <p>Name resolution uses the
+      <a href="https://simbad.cds.unistra.fr/simbad/">SIMBAD</a> TAP service at CDS,
+      Strasbourg. It is a convenience only &mdash; the page works entirely offline if you
+      type coordinates in yourself.</p>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ═══ measured efficiency ══════════════════════════════════════════════
+   * Normalized modulation amplitude against IMR (bench) angle, from Lewis et
+   * al. in prep. (2026), the NIRC2-Pol first light paper — measured in the
+   * commissioning internal calibration sequences, issue #118.
+   *
+   * These are digitized by eye from the summary plot; no tabulated source
+   * exists. Treat them as good to roughly ±0.02. Sampling stops at 150° in
+   * J and L, 120° in H and 90° in K; anything past a band's last point is
+   * interpolated round to the 0° value and flagged as extrapolated.
+   *
+   * Replace this block wholesale if the underlying numbers are ever written
+   * out properly — nothing else in the page depends on its shape.
+   */
+  var EFF = {
+    J: [[0, 0.553], [15, 0.703], [30, 0.927], [45, 1.000], [60, 0.884], [75, 0.794],
+        [90, 0.745], [105, 0.826], [120, 0.896], [135, 0.945], [150, 0.870]],
+    H: [[0, 0.774], [15, 0.882], [30, 0.959], [45, 1.000], [60, 0.901], [75, 0.861],
+        [90, 0.829], [105, 0.887], [120, 0.907]],
+    K: [[0, 0.589], [30, 0.999], [60, 1.000], [90, 0.941]],
+    L: [[0, 0.897], [15, 1.000], [30, 0.913], [60, 0.895], [90, 0.875], [120, 0.897],
+        [150, 0.918]]
+  };
+
+  /* ═══ site and instrument constants ════════════════════════════════════ */
+
+  /* EarthLocation.of_site('keck'), so the astropy cross-check is exact. */
+  var LAT = 19.828333, LON = -155.478333;
+
+  var INSTANGL = 0.7;   /* NIRC2 instrument angle, deg */
+  var HST_OFFSET = -10; /* Hawaii is UTC-10 year round */
+
+  var EFF_FRAC = 0.95;  /* the efficiency plot's reference line, as a fraction of
+                           the value at the target angle */
+
+  /* ═══ angles ═══════════════════════════════════════════════════════════ */
+
+  var D2R = Math.PI / 180, R2D = 180 / Math.PI;
+
+  function sind(x) { return Math.sin(x * D2R); }
+  function cosd(x) { return Math.cos(x * D2R); }
+  function tand(x) { return Math.tan(x * D2R); }
+
+  function norm360(x) { var v = x % 360; return v < 0 ? v + 360 : v; }
+  function norm180(x) { var v = norm360(x); return v > 180 ? v - 360 : v; }
+
+  /** Bench angles are reported in 0–180°: a K-mirror rotated by half a turn
+   *  is the same optical configuration. */
+  function wrapBench(x) { var v = x % 180; return v < 0 ? v + 180 : v; }
+
+  /* ═══ coordinate parsing ═══════════════════════════════════════════════
+   * Sexagesimal when separators are present, decimal degrees otherwise —
+   * the convention the field hints advertise.
+   */
+
+  function parseSex(str, isHours) {
+    var s = String(str).trim();
+    if (!s) return NaN;
+    var neg = /^[-−]/.test(s);
+    s = s.replace(/^[+\-−]/, "").replace(/[hdms°'"]/gi, " ").trim();
+
+    var parts = s.split(/[\s:]+/).filter(function (p) { return p.length; });
+    if (parts.length === 0) return NaN;
+
+    var vals = parts.map(Number);
+    if (vals.some(function (v) { return !isFinite(v); })) return NaN;
+
+    var deg;
+    if (parts.length === 1) {
+      /* A bare number is already in degrees, in both fields. */
+      deg = vals[0];
+    } else {
+      var mag = (vals[0] || 0) + (vals[1] || 0) / 60 + (vals[2] || 0) / 3600;
+      deg = isHours ? mag * 15 : mag;
+    }
+    return neg ? -deg : deg;
+  }
+
+  function parseRA(str) {
+    var hasSep = /[\s:hms]/i.test(String(str).trim());
+    var v = parseSex(str, hasSep);
+    if (!isFinite(v)) return NaN;
+    return norm360(v);
+  }
+
+  function parseDec(str) {
+    var v = parseSex(str, false);
+    if (!isFinite(v) || v < -90 || v > 90) return NaN;
+    return v;
+  }
+
+  function fmtRA(deg) {
+    var h = norm360(deg) / 15;
+    var hh = Math.floor(h), m = (h - hh) * 60, mm = Math.floor(m), ss = (m - mm) * 60;
+    if (ss >= 59.995) { ss = 0; mm += 1; }
+    if (mm >= 60) { mm = 0; hh = (hh + 1) % 24; }
+    return pad2(hh) + " " + pad2(mm) + " " + (ss < 10 ? "0" : "") + ss.toFixed(2);
+  }
+
+  function fmtDec(deg) {
+    var sgn = deg < 0 ? "-" : "+", a = Math.abs(deg);
+    var dd = Math.floor(a), m = (a - dd) * 60, mm = Math.floor(m), ss = (m - mm) * 60;
+    if (ss >= 59.95) { ss = 0; mm += 1; }
+    if (mm >= 60) { mm = 0; dd += 1; }
+    return sgn + pad2(dd) + " " + pad2(mm) + " " + (ss < 10 ? "0" : "") + ss.toFixed(1);
+  }
+
+  function pad2(n) { return (n < 10 ? "0" : "") + Math.floor(n); }
+
+  /* ═══ time and place ═══════════════════════════════════════════════════ */
+
+  function jdFrom(date) { return date.getTime() / 86400000 + 2440587.5; }
+
+  /** Greenwich mean sidereal time, degrees. Meeus eq. 12.4. */
+  function gmst(jd) {
+    var d = jd - 2451545.0, T = d / 36525;
+    return norm360(280.46061837 + 360.98564736629 * d
+                   + 0.000387933 * T * T - T * T * T / 38710000);
+  }
+
+  function lst(jd) { return norm360(gmst(jd) + LON); }
+
+  /** ICRS/J2000 position carried to the epoch of date: proper motion applied,
+   *  then precessed to the mean equinox of date (Meeus 21.3 / 21.4, with the
+   *  starting epoch fixed at J2000 so the T terms drop out). pm in mas/yr. */
+  function apparentPlace(ra0, dec0, pmra, pmdec, jd) {
+    var yrs = (jd - 2451545.0) / 365.25;
+
+    var dec = dec0, ra = ra0;
+    if (isFinite(pmra) && isFinite(pmdec) && (pmra || pmdec)) {
+      var cd = cosd(dec0);
+      if (Math.abs(cd) > 1e-8) ra = ra0 + (pmra / 3.6e6) * yrs / cd;
+      dec = dec0 + (pmdec / 3.6e6) * yrs;
+    }
+
+    var t = (jd - 2451545.0) / 36525;
+    var zeta  = (2306.2181 * t + 0.30188 * t * t + 0.017998 * t * t * t) / 3600;
+    var z     = (2306.2181 * t + 1.09468 * t * t + 0.018203 * t * t * t) / 3600;
+    var theta = (2004.3109 * t - 0.42665 * t * t - 0.041833 * t * t * t) / 3600;
+
+    var A = cosd(dec) * sind(ra + zeta);
+    var B = cosd(theta) * cosd(dec) * cosd(ra + zeta) - sind(theta) * sind(dec);
+    var C = sind(theta) * cosd(dec) * cosd(ra + zeta) + cosd(theta) * sind(dec);
+
+    return {
+      ra: norm360(z + Math.atan2(A, B) * R2D),
+      dec: Math.asin(Math.max(-1, Math.min(1, C))) * R2D
+    };
+  }
+
+  /** Elevation, azimuth (north through east) and parallactic angle for an
+   *  hour angle, all in degrees. */
+  function horizon(haDeg, decDeg) {
+    var el = Math.asin(Math.max(-1, Math.min(1,
+      sind(decDeg) * sind(LAT) + cosd(decDeg) * cosd(LAT) * cosd(haDeg)))) * R2D;
+    var q = Math.atan2(sind(haDeg),
+      tand(LAT) * cosd(decDeg) - sind(decDeg) * cosd(haDeg)) * R2D;
+    var az = norm360(Math.atan2(-cosd(decDeg) * sind(haDeg),
+      sind(decDeg) * cosd(LAT) - cosd(decDeg) * sind(LAT) * cosd(haDeg)) * R2D);
+    return { el: el, az: az, parang: q };
+  }
+
+  /* ═══ Keck II pointing limits ══════════════════════════════════════════
+   * https://www2.keck.hawaii.edu/inst/common/TelLimits.html
+   *
+   * The real boundary is a curve, not a rectangle: across the south and west
+   * the telescope runs into the Nasmyth deck, and the elevation floor there
+   * rises to roughly 37 deg. These are the documented corner values, used
+   * only to raise a flag — check the limits page for the actual shape before
+   * committing to anything close to the edge.
+   */
+  var LIM = {
+    elLow: 18,          /* unvignetted floor away from the deck */
+    elHigh: 89.5,       /* upper limit */
+    elGuide: 85,        /* stable guiding not guaranteed above this at transit */
+    deckAz0: 185.3, deckAz1: 332.8, deckEl: 36.8
+  };
+
+  function inDeckAzimuth(az) { return az >= LIM.deckAz0 && az <= LIM.deckAz1; }
+
+  /** Pickering (2002) airmass — behaves down to the horizon, unlike sec z. */
+  function airmass(el) {
+    if (!(el > 0)) return NaN;
+    return 1 / sind(el + 244 / (165 + 47 * Math.pow(el, 1.1)));
+  }
+
+  /** Low-precision solar position (USNO/Meeus 25), good to ~0.01° — plenty
+   *  to say whether it is dark. */
+  function sunEl(jd) {
+    var n = jd - 2451545.0;
+    var L = norm360(280.460 + 0.9856474 * n);
+    var g = norm360(357.528 + 0.9856003 * n);
+    var lam = L + 1.915 * sind(g) + 0.020 * sind(2 * g);
+    var eps = 23.439 - 0.0000004 * n;
+    var ra = norm360(Math.atan2(cosd(eps) * sind(lam), cosd(lam)) * R2D);
+    var dec = Math.asin(sind(eps) * sind(lam)) * R2D;
+    return horizon(norm180(lst(jd) - ra), dec).el;
+  }
+
+  /* ═══ rotator relations (issue #185) ═══════════════════════════════════
+   *   stationary  command = 2D − INSTANGL
+   *   vertang     command = 2D − INSTANGL − EL
+   *   posang      command = 2D − INSTANGL + s·PARANG − EL
+   * with D the bench/OBRT angle. Only the first two are confirmed on sky.
+   */
+
+  function commandFor(D, mode, el, parang, sign) {
+    var c = 2 * D - INSTANGL;
+    if (mode === "vertang") c -= el;
+    else if (mode === "posang") c += sign * parang - el;
+    return c;
+  }
+
+  function benchFor(C, mode, el, parang, sign) {
+    var v = C + INSTANGL;
+    if (mode === "vertang") v += el;
+    else if (mode === "posang") v += el - sign * parang;
+    return v / 2;
+  }
+
+  /* ═══ efficiency interpolation ═════════════════════════════════════════ */
+
+  /** Linear interpolation of a band's measured curve at a bench angle.
+   *  Past the last measured point the curve is closed back onto the 0° value
+   *  — the only continuation available — and reported as extrapolated. */
+  function effAt(band, benchDeg) {
+    var pts = EFF[band], a = wrapBench(benchDeg), i;
+    for (i = 0; i < pts.length - 1; i++) {
+      if (a >= pts[i][0] && a <= pts[i + 1][0]) {
+        var f = (a - pts[i][0]) / (pts[i + 1][0] - pts[i][0]);
+        return { v: pts[i][1] + f * (pts[i + 1][1] - pts[i][1]), extrap: false };
+      }
+    }
+    var last = pts[pts.length - 1], first = pts[0];
+    var g = (a - last[0]) / (180 - last[0]);
+    return { v: last[1] + g * (first[1] - last[1]), extrap: true };
+  }
+
+  /* ═══ the calculation ══════════════════════════════════════════════════ */
+
+  var N_SAMPLES = 121;
+
+  /** Sample the whole window: sky position, bench angle and efficiency at
+   *  each step, for the command that lands the bench on the target angle at
+   *  the midpoint. */
+  function compute(s) {
+    var ra = parseRA(s.ra), dec = parseDec(s.dec);
+    if (!isFinite(ra) || !isFinite(dec)) return { bad: "coords" };
+
+    var start = startDate(s);
+    if (!start) return { bad: "time" };
+
+    var dur = Math.max(1, Math.min(720, s.dur || 60));
+    /* 180 deg of bench is the same K-mirror orientation as 0, so fold the
+       requested angle into 0-180 before anything else uses it. */
+    var tgt = wrapBench(Number(s.tgt) || 0);
+    var jd0 = jdFrom(start);
+
+    /* Where the target is, and how bright the sky is, at one instant. */
+    var at = function (jd) {
+      var p = apparentPlace(ra, dec, s.pmra, s.pmdec, jd);
+      var ha = norm180(lst(jd) - p.ra);
+      var h = horizon(ha, p.dec);
+      return { jd: jd, ha: ha, el: h.el, az: h.az, parang: h.parang, sun: sunEl(jd) };
+    };
+
+    /* Sky positions first, so the parallactic angle can be unwrapped before
+       anything is derived from it. */
+    var samples = [], i, k, sk, b;
+    for (i = 0; i < N_SAMPLES; i++) {
+      k = i / (N_SAMPLES - 1);
+      sk = at(jd0 + k * dur / 1440);
+      sk.min = k * dur;
+      sk.parangDisp = sk.parang;
+      samples.push(sk);
+    }
+
+    /* For a target that transits north of the zenith the parallactic angle
+       runs through +/-180 mid-sequence. The rotator tracks straight through
+       it; only the coordinate wraps. Left alone, that shows up as a 180 deg
+       jump in the bench angle and a nonsense swing, so unwrap the series. */
+    for (i = 1; i < samples.length; i++) {
+      while (samples[i].parang - samples[i - 1].parang > 180) samples[i].parang -= 360;
+      while (samples[i].parang - samples[i - 1].parang < -180) samples[i].parang += 360;
+    }
+
+    /* One command holds for the whole sequence, so anchor it at the midpoint:
+       that is what splits the drift evenly either side of the target angle. */
+    var mid = samples[(N_SAMPLES - 1) / 2 | 0];
+
+    /* OBRT must never go negative, and every 180 deg of it is the same
+       K-mirror orientation, so the usable solutions are the target angle plus
+       any multiple of 180 -- each reached by adding the matching multiple of
+       360 to the command. Take the lowest one that keeps OBRT at or above zero
+       for the whole window, not just at the midpoint: a long sequence can be
+       fine in the middle and dip below zero at one end. */
+    var solve = function (sg) {
+      var c0 = commandFor(tgt, s.mode, mid.el, mid.parang, sg), lo = Infinity, j, v;
+      for (j = 0; j < samples.length; j++) {
+        v = benchFor(c0, s.mode, samples[j].el, samples[j].parang, sg);
+        if (v < lo) lo = v;
+      }
+      var k = lo < 0 ? Math.ceil(-lo / 180) : 0;
+      return { cmd: c0 + 360 * k, turns: k, obrtTarget: tgt + 180 * k };
+    };
+
+    var sol = solve(s.sign);
+    var cmd = sol.cmd;
+    var shifted = sol.turns > 0;
+
+    /* In posang the parallactic sign is untested, so carry both. */
+    var alt = s.mode === "posang" ? solve(-s.sign) : null;
+    var altCmd = alt ? alt.cmd : null;
+
+    for (i = 0; i < samples.length; i++) {
+      sk = samples[i];
+      sk.bench = benchFor(cmd, s.mode, sk.el, sk.parang, s.sign);
+      b = effAt(s.band, sk.bench);
+      sk.eff = b.v;
+      sk.extrap = b.extrap;
+      if (altCmd !== null) {
+        sk.benchAlt = benchFor(altCmd, s.mode, sk.el, sk.parang, -s.sign);
+        sk.effAlt = effAt(s.band, sk.benchAlt).v;
+      }
+    }
+
+    var benches = samples.map(function (p) { return p.bench; });
+    var effs = samples.map(function (p) { return p.eff; });
+
+    var swing = Math.max.apply(null, benches) - Math.min.apply(null, benches);
+
+    var effTarget = effAt(s.band, tgt).v;
+    var floor = EFF_FRAC * effTarget;
+
+    return {
+      ra: ra, dec: dec, start: start, dur: dur, tgt: tgt,
+      cmd: cmd, turns: sol.turns, obrtTarget: sol.obrtTarget,
+      shifted: shifted, altCmd: altCmd,
+      samples: samples,
+      first: samples[0], mid: mid, last: samples[N_SAMPLES - 1],
+      swing: swing,
+      benchMin: Math.min.apply(null, benches), benchMax: Math.max.apply(null, benches),
+      effMin: Math.min.apply(null, effs),
+      effMean: effs.reduce(function (a, v) { return a + v; }, 0) / effs.length,
+      effTarget: effTarget, effFloor: floor,
+      anyExtrap: samples.some(function (p) { return p.extrap; })
+    };
+  }
+
+  /** The start instant as a Date, from the date/time fields and the scale. */
+  function startDate(s) {
+    var d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.date);
+    var t = /^(\d{1,2}):(\d{2})/.exec(s.time);
+    if (!d || !t) return null;
+    var hr = Number(t[1]) - (s.scale === "HST" ? HST_OFFSET : 0);
+    var ms = Date.UTC(Number(d[1]), Number(d[2]) - 1, Number(d[3]), hr, Number(t[2]));
+    return isFinite(ms) ? new Date(ms) : null;
+  }
+
+  /** UT instant of the target's transit on the given UT date — used by the
+   *  "centre on transit" button and to give the page a sensible first view. */
+  function transitUT(raDeg, dateStr) {
+    var d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+    if (!d) return null;
+    var midnight = new Date(Date.UTC(Number(d[1]), Number(d[2]) - 1, Number(d[3])));
+    var jd0 = jdFrom(midnight);
+    var lst0 = lst(jd0);
+    /* Sidereal time runs fast by this factor against UT. */
+    var hours = norm360(raDeg - lst0) / 15 / 1.0027379;
+    return new Date(midnight.getTime() + hours * 3600000);
+  }
+
+  /* ═══ formatting ═══════════════════════════════════════════════════════ */
+
+  function deg1(v) { return isFinite(v) ? v.toFixed(1) : "—"; }
+  function deg2(v) { return isFinite(v) ? v.toFixed(2) : "—"; }
+  function eff3(v) { return isFinite(v) ? v.toFixed(3) : "—"; }
+
+  function hm(date, hstShift) {
+    var d = hstShift ? new Date(date.getTime() + HST_OFFSET * 3600000) : date;
+    return pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes());
+  }
+
+  function ymd(date, hstShift) {
+    var d = hstShift ? new Date(date.getTime() + HST_OFFSET * 3600000) : date;
+    return d.getUTCFullYear() + "-" + pad2(d.getUTCMonth() + 1) + "-" + pad2(d.getUTCDate());
+  }
+
+  function haStr(deg) {
+    var h = deg / 15;
+    return (h < 0 ? "−" : "+") + Math.abs(h).toFixed(2) + "h";
+  }
+
+  /* ═══ plotting ═════════════════════════════════════════════════════════
+   * The small SVG plotter from the exposure time calculator, widened to take
+   * several series and to leave the y-axis free rather than anchoring it at
+   * zero — a bench angle chart wants to fill its range.
+   */
+
+  var NS = "http://www.w3.org/2000/svg";
+
+  function svgEl(name, attrs, text) {
+    var node = document.createElementNS(NS, name);
+    for (var k in attrs) node.setAttribute(k, String(attrs[k]));
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function fmtTick(v) {
+    var a = Math.abs(v);
+    if (a === 0) return "0";
+    if (a >= 100) return v.toFixed(0);
+    if (a >= 10) return v.toFixed(0);
+    if (a >= 1) return v.toFixed(1);
+    return v.toFixed(2);
+  }
+
+  /** ~5 human-readable tick values spanning [lo, hi]. */
+  function ticks(lo, hi) {
+    var out = [], v;
+    var span = hi - lo;
+    if (!(span > 0)) return [lo];
+    var mag = Math.pow(10, Math.floor(Math.log10(span / 5)));
+    var norm = span / 5 / mag;
+    var step = (norm >= 5 ? 5 : norm >= 2 ? 2 : 1) * mag;
+    for (v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) out.push(v);
+    return out;
+  }
+
+  /** Draw a multi-series line chart into a container, replacing its contents.
+   *  Each series is { points: [{x,y}], dash: bool, runs: bool } — with runs
+   *  set, consecutive points sharing an `extrap` flag are drawn as separate
+   *  paths so extrapolated stretches can be dashed. */
+  function lineChart(container, spec) {
+    container.textContent = "";
+    var W = 620, H = 260;
+    var m = { top: 30, right: 16, bottom: 44, left: 60 };
+    var iw = W - m.left - m.right, ih = H - m.top - m.bottom;
+
+    var svg = svgEl("svg", {
+      viewBox: "0 0 " + W + " " + H, "class": "chart",
+      role: "img", "aria-label": spec.title, preserveAspectRatio: "xMidYMid meet"
+    });
+    svg.appendChild(svgEl("text", {
+      x: W / 2, y: 17, "text-anchor": "middle", "class": "chart-title"
+    }, spec.title));
+
+    var all = [];
+    spec.series.forEach(function (se) {
+      se.points.forEach(function (p) { if (isFinite(p.x) && isFinite(p.y)) all.push(p); });
+    });
+
+    if (!all.length) {
+      svg.appendChild(svgEl("text", {
+        x: W / 2, y: H / 2, "text-anchor": "middle", "class": "chart-empty"
+      }, "no finite data"));
+      container.appendChild(svg);
+      return;
+    }
+
+    var x0 = Math.min.apply(null, all.map(function (p) { return p.x; }));
+    var x1 = Math.max.apply(null, all.map(function (p) { return p.x; }));
+    var y0 = Math.min.apply(null, all.map(function (p) { return p.y; }));
+    var y1 = Math.max.apply(null, all.map(function (p) { return p.y; }));
+
+    if (spec.hLine !== undefined) { y0 = Math.min(y0, spec.hLine); y1 = Math.max(y1, spec.hLine); }
+    if (spec.yMin !== undefined) y0 = Math.min(y0, spec.yMin);
+    if (spec.yMax !== undefined) y1 = Math.max(y1, spec.yMax);
+
+    if (x1 === x0) x1 = x0 + 1;
+    /* A flat trace still deserves a readable band around it. */
+    if (y1 - y0 < 1e-6) { y0 -= 1; y1 += 1; }
+    else { var padY = (y1 - y0) * 0.12; y0 -= padY; y1 += padY; }
+
+    function tx(v) { return m.left + (v - x0) / (x1 - x0) * iw; }
+    function ty(v) { return m.top + ih - (v - y0) / (y1 - y0) * ih; }
+
+    ticks(y0, y1).forEach(function (t) {
+      if (t < y0 || t > y1) return;
+      svg.appendChild(svgEl("line", { x1: m.left, x2: m.left + iw, y1: ty(t), y2: ty(t), "class": "gridline" }));
+      svg.appendChild(svgEl("text", { x: m.left - 8, y: ty(t) + 4, "text-anchor": "end", "class": "tick" }, fmtTick(t)));
+    });
+    ticks(x0, x1).forEach(function (t) {
+      if (t < x0 || t > x1) return;
+      svg.appendChild(svgEl("line", { x1: tx(t), x2: tx(t), y1: m.top, y2: m.top + ih, "class": "gridline" }));
+      svg.appendChild(svgEl("text", { x: tx(t), y: m.top + ih + 18, "text-anchor": "middle", "class": "tick" }, fmtTick(t)));
+    });
+
+    svg.appendChild(svgEl("line", { x1: m.left, x2: m.left + iw, y1: m.top + ih, y2: m.top + ih, "class": "axisline" }));
+    svg.appendChild(svgEl("line", { x1: m.left, x2: m.left, y1: m.top, y2: m.top + ih, "class": "axisline" }));
+    svg.appendChild(svgEl("text", { x: m.left + iw / 2, y: H - 9, "text-anchor": "middle", "class": "axis-label" }, spec.xLabel));
+    svg.appendChild(svgEl("text", {
+      x: 13, y: m.top + ih / 2, "text-anchor": "middle", "class": "axis-label",
+      transform: "rotate(-90 13 " + (m.top + ih / 2) + ")"
+    }, spec.yLabel));
+
+    if (spec.hLine !== undefined) {
+      svg.appendChild(svgEl("line", {
+        x1: m.left, x2: m.left + iw, y1: ty(spec.hLine), y2: ty(spec.hLine), "class": "threshold"
+      }));
+      if (spec.hLabel) {
+        svg.appendChild(svgEl("text", {
+          x: m.left + iw - 4, y: ty(spec.hLine) - 5, "text-anchor": "end", "class": "tick"
+        }, spec.hLabel));
+      }
+    }
+
+    function path(pts, dashed, colour) {
+      if (pts.length < 2) return;
+      var d = pts.map(function (p, i) {
+        return (i ? "L" : "M") + tx(p.x).toFixed(2) + "," + ty(p.y).toFixed(2);
+      }).join(" ");
+      var a = { d: d, fill: "none", stroke: colour, "stroke-width": 2, "stroke-linejoin": "round" };
+      if (dashed) a["stroke-dasharray"] = "5 4";
+      svg.appendChild(svgEl("path", a));
+    }
+
+    spec.series.forEach(function (se) {
+      var colour = se.muted ? "var(--muted)" : "var(--accent)";
+      var pts = se.points.filter(function (p) { return isFinite(p.x) && isFinite(p.y); });
+      if (!se.runs) { path(pts, se.dash, colour); return; }
+
+      /* Split into runs of equal `extrap` so the unsampled stretch is dashed,
+         repeating the boundary point to keep the line unbroken. */
+      var run = [], i;
+      for (i = 0; i < pts.length; i++) {
+        if (run.length && pts[i].extrap !== run[run.length - 1].extrap) {
+          run.push(pts[i]);                    /* carry the boundary point over */
+          path(run, run[0].extrap || se.dash, colour);
+          run = [pts[i]];
+        } else {
+          run.push(pts[i]);
+        }
+      }
+      if (run.length) path(run, run[0].extrap || se.dash, colour);
+    });
+
+    (spec.markers || []).forEach(function (mk) {
+      svg.appendChild(svgEl("circle", { cx: tx(mk.x), cy: ty(mk.y), r: 3.5, "class": "marker" }));
+      if (mk.label) {
+        svg.appendChild(svgEl("text", {
+          x: tx(mk.x), y: ty(mk.y) - 9, "text-anchor": mk.anchor || "middle", "class": "readout"
+        }, mk.label));
+      }
+    });
+
+    container.appendChild(svg);
+  }
+
+  /* ═══ state ════════════════════════════════════════════════════════════ */
+
+  var DEFAULTS = {
+    name: "AB Aur", ra: "04 55 45.85", dec: "+30 33 04.3",
+    pmra: NaN, pmdec: NaN,
+    date: "", time: "10:00", scale: "UT", dur: 60,
+    mode: "vertang", band: "H", tgt: 45, sign: 1
+  };
+
+  var el = {};
+  ["name", "ra", "dec", "date", "time", "dur", "mode", "band", "tgt", "sign"]
+    .forEach(function (k) { el[k] = document.getElementById(k); });
+
+  var pm = { ra: NaN, dec: NaN };   /* proper motion, only from a resolve */
+  var scale = DEFAULTS.scale;
+
+  function readState() {
+    return {
+      name: el.name.value.trim(),
+      ra: el.ra.value, dec: el.dec.value,
+      pmra: pm.ra, pmdec: pm.dec,
+      date: el.date.value, time: el.time.value, scale: scale,
+      dur: Number(el.dur.value),
+      mode: el.mode.value, band: el.band.value,
+      tgt: Number(el.tgt.value), sign: Number(el.sign.value)
+    };
+  }
+
+  /* ═══ rendering ════════════════════════════════════════════════════════ */
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function warn(text, strong, note) {
+    var d = document.createElement("div");
+    d.className = note ? "banner note" : "banner";
+    d.innerHTML = (strong ? "<b>" + strong + "</b> " : "") + text;
+    return d;
+  }
+
+  function render() {
+    var s = readState();
+    var r = compute(s);
+
+    el.ra.setAttribute("aria-invalid", isFinite(parseRA(s.ra)) ? "false" : "true");
+    el.dec.setAttribute("aria-invalid", isFinite(parseDec(s.dec)) ? "false" : "true");
+    el.time.setAttribute("aria-invalid", /^\d{1,2}:\d{2}$/.test(s.time.trim()) ? "false" : "true");
+
+    var signBanner = $("signBanner");
+    if (s.mode === "posang") {
+      signBanner.hidden = false;
+      signBanner.innerHTML =
+        "<p><b>posang is unverified.</b> The sign of the parallactic term has never been "
+        + "tested on sky &mdash; at the dome flat position PARANG is zero, so posang and "
+        + "vertang collapse onto each other "
+        + "(<a href=\"https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-Ops/issues/185\">issue&nbsp;185</a>).</p>"
+        + (r.bad ? "" : "<p>With the other sign the command would be <span class=\"mono\">"
+            + deg1(r.altCmd) + "</span>&deg;. One exposure at either value, read back with "
+            + "<span class=\"mono\">show -s ao obrt</span>, settles which is right.</p>");
+    } else {
+      signBanner.hidden = true;
+    }
+
+    var warns = $("warns");
+    warns.textContent = "";
+
+    if (r.bad === "coords") {
+      $("cmdText").textContent = "—";
+      $("cmdSub").textContent = "Enter a valid RA and Dec.";
+      blankOut();
+      return;
+    }
+    if (r.bad === "time") {
+      $("cmdText").textContent = "—";
+      $("cmdSub").textContent = "Enter a valid start date and time.";
+      blankOut();
+      return;
+    }
+
+    /* ── the command ── */
+    var cmdStr = "rotate " + deg1(r.cmd) + " " + s.mode;
+    $("cmdText").textContent = cmdStr;
+
+    var sub = "Puts the bench at " + deg1(r.obrtTarget) + "° at the midpoint, "
+            + hm(new Date(r.start.getTime() + r.dur / 2 * 60000)) + " UT.";
+    if (s.mode === "stationary") {
+      sub = "Bench holds at " + deg1(benchFor(r.cmd, "stationary", 0, 0, 1))
+          + "° — the rotator does not track, so the field rotates during the sequence.";
+    }
+    $("cmdSub").textContent = sub;
+
+    /* ── warnings ── */
+    if (r.shifted) {
+      warns.appendChild(warn(
+        "On the nearest branch OBRT would go negative part-way through this sequence, so the "
+        + "command is raised by " + (r.turns * 360) + "°, putting the bench at "
+        + deg1(r.obrtTarget) + "° at the midpoint rather than " + deg1(r.tgt)
+        + "°. That is the same K-mirror orientation, so the efficiency is unchanged, and it "
+        + "keeps <span class=\"mono\">show -s ao obrt</span> positive throughout.",
+        "Shifted to keep OBRT positive."));
+    }
+
+    var elMin = Math.min.apply(null, r.samples.map(function (p) { return p.el; }));
+    var elMax = Math.max.apply(null, r.samples.map(function (p) { return p.el; }));
+
+    var LIMS = "<a href=\"https://www2.keck.hawaii.edu/inst/common/TelLimits.html\">"
+             + "Keck pointing limits</a>";
+
+    if (elMin < 0) {
+      warns.appendChild(warn("The target is below the horizon for part of this window (down to "
+        + deg1(elMin) + "°).", "Below horizon."));
+    } else if (elMin < LIM.elLow) {
+      warns.appendChild(warn("Elevation drops to " + deg1(elMin)
+        + "°. Below 18° the pupil is vignetted. See the " + LIMS + ".",
+        "Below the unvignetted limit."));
+    }
+
+    /* The floor across the south and west is the Nasmyth deck, not 18 deg. */
+    var deck = r.samples.filter(function (p) {
+      return inDeckAzimuth(p.az) && p.el < LIM.deckEl && p.el > 0;
+    });
+    if (deck.length) {
+      var dEl = Math.min.apply(null, deck.map(function (p) { return p.el; }));
+      warns.appendChild(warn("Part of this window is in the south-to-west azimuth range ("
+        + deg1(LIM.deckAz0) + "°–" + deg1(LIM.deckAz1) + "°) at elevations down to "
+        + deg1(dEl) + "°, where Keck II runs into the Nasmyth deck at roughly "
+        + deg1(LIM.deckEl) + "°. Check the " + LIMS + " before relying on this window.",
+        "Nasmyth deck."));
+    }
+
+    if (elMax > LIM.elHigh) {
+      warns.appendChild(warn("The target passes within " + deg1(90 - elMax)
+        + "° of the zenith, above the " + deg1(LIM.elHigh) + "° limit.", "Above the limit."));
+    } else if (elMax > LIM.elGuide) {
+      warns.appendChild(warn("The target reaches " + deg1(elMax)
+        + "°. Stable guiding is not guaranteed for targets transiting above about "
+        + deg1(LIM.elGuide) + "°, and the rotator moves fast near the zenith.",
+        "Near zenith.", true));
+    }
+
+    var haSign = r.samples.map(function (p) { return p.ha > 0; });
+    if (haSign[0] !== haSign[haSign.length - 1]) {
+      warns.appendChild(warn("The target transits during this window, so the parallactic "
+        + "angle swings quickly through it.", "Transit.", true));
+    }
+
+    var sunMax = Math.max.apply(null, r.samples.map(function (p) { return p.sun; }));
+    if (sunMax > 0) {
+      warns.appendChild(warn("The Sun is above the horizon for part of this window (up to "
+        + deg1(sunMax) + "°).", "Daylight.", true));
+    } else if (sunMax > -12) {
+      warns.appendChild(warn("The Sun reaches " + deg1(sunMax)
+        + "° — nautical twilight or brighter.", "Twilight.", true));
+    }
+
+    if (r.anyExtrap) {
+      warns.appendChild(warn("Part of the sequence sits beyond the last measured IMR angle "
+        + "for " + s.band + ", so those efficiencies are extrapolated back to the 0° point "
+        + "and drawn dashed.", "Outside the measured range."));
+    }
+
+    /* ── tiles ── */
+    $("tMid").textContent = deg1(r.mid.bench);
+    $("tMidSub").textContent = "target " + deg1(r.obrtTarget)
+      + (r.shifted ? "° ≡ " + deg1(r.tgt) + "°" : "°")
+      + " · efficiency " + eff3(r.effTarget);
+
+    $("tSwing").textContent = deg1(r.swing);
+    $("tSwingSub").textContent = deg1(r.first.bench) + "° → " + deg1(r.last.bench) + "°";
+
+    $("tEff").textContent = eff3(r.effMin);
+    $("tEffSub").textContent = "min · mean " + eff3(r.effMean) + " · band " + s.band;
+
+    /* ── ledger ── */
+    var rows = [["Start", r.first], ["Midpoint", r.mid], ["End", r.last]];
+    var body = $("ledgerBody");
+    body.textContent = "";
+    rows.forEach(function (pair) {
+      var p = pair[1];
+      var d = new Date(r.start.getTime() + p.min * 60000);
+      var tr = document.createElement("tr");
+      if (pair[0] === "Midpoint") tr.className = "dominant";
+      tr.innerHTML =
+        "<th>" + pair[0] + "</th>"
+        + "<td>" + hm(d) + "</td>"
+        + "<td>" + hm(d, true) + "</td>"
+        + "<td>" + haStr(p.ha) + "</td>"
+        + "<td>" + deg1(p.el) + "</td>"
+        + "<td>" + deg1(p.az) + "</td>"
+        + "<td>" + deg1(p.parangDisp) + "</td>"
+        + "<td" + (isFinite(airmass(p.el)) ? ">" + deg2(airmass(p.el)) : " class=\"na\">—")
+        + "</td>"
+        + "<td>" + deg1(p.bench) + "</td>"
+        + "<td>" + eff3(p.eff) + (p.extrap ? "*" : "") + "</td>";
+      body.appendChild(tr);
+    });
+
+    /* ── plots ── */
+    var benchSeries = [{ points: r.samples.map(function (p) { return { x: p.min, y: p.bench }; }) }];
+    var effSeries = [{
+      runs: true,
+      points: r.samples.map(function (p) { return { x: p.min, y: p.eff, extrap: p.extrap }; })
+    }];
+
+    if (s.mode === "posang") {
+      benchSeries.push({
+        muted: true, dash: true,
+        points: r.samples.map(function (p) { return { x: p.min, y: p.benchAlt }; })
+      });
+      effSeries.push({
+        muted: true, dash: true,
+        points: r.samples.map(function (p) { return { x: p.min, y: p.effAlt }; })
+      });
+    }
+
+    lineChart($("plotBench"), {
+      title: "Bench angle through the sequence",
+      xLabel: "minutes from start", yLabel: "IMR bench angle, OBRT (deg)",
+      series: benchSeries,
+      hLine: r.obrtTarget, hLabel: "target " + deg1(r.obrtTarget) + "°",
+      markers: [{ x: r.mid.min, y: r.mid.bench, label: deg1(r.mid.bench) + "°" }]
+    });
+
+    lineChart($("plotEff"), {
+      title: "Polarimetric efficiency, " + s.band + " band",
+      xLabel: "minutes from start", yLabel: "normalized amplitude",
+      series: effSeries,
+      hLine: r.effFloor, hLabel: Math.round(EFF_FRAC * 100) + "% of target",
+      yMax: Math.min(1, r.effTarget + 0.02)
+    });
+
+    var lg = $("plotLegend");
+    lg.innerHTML = s.mode === "posang"
+      ? "<span><i class=\"s1\"></i>" + (s.sign > 0 ? "+" : "−") + " PARANG (selected)</span>"
+        + "<span><i class=\"s2\"></i>" + (s.sign > 0 ? "−" : "+") + " PARANG (alternative)</span>"
+      : "";
+
+    /* ── rail ── */
+    $("railCmd").textContent = deg1(r.cmd);
+    $("railSwing").textContent = deg1(r.swing);
+
+    writeHash(s);
+    lastResult = r;
+    lastState = s;
+  }
+
+  function blankOut() {
+    ["tMid", "tSwing", "tEff"].forEach(function (id) { $(id).textContent = "—"; });
+    ["tMidSub", "tSwingSub", "tEffSub"].forEach(function (id) { $(id).textContent = ""; });
+    $("ledgerBody").textContent = "";
+    $("plotBench").textContent = "";
+    $("plotEff").textContent = "";
+    $("plotLegend").textContent = "";
+    $("railCmd").textContent = "—";
+    $("railSwing").textContent = "—";
+    lastResult = null;
+  }
+
+  var lastResult = null, lastState = null;
+
+  /* ═══ shareable state in the URL ═══════════════════════════════════════ */
+
+  var HASH_KEYS = ["name", "ra", "dec", "date", "time", "scale", "dur", "mode", "band", "tgt", "sign"];
+
+  function writeHash(s) {
+    var parts = HASH_KEYS.filter(function (k) {
+      return String(s[k]) !== String(DEFAULTS[k]) && s[k] !== "";
+    }).map(function (k) {
+      return k + "=" + encodeURIComponent(s[k]);
+    });
+    var h = parts.length ? "#" + parts.join("&") : "";
+    if (h !== location.hash) history.replaceState(null, "", location.pathname + location.search + h);
+  }
+
+  function readHash() {
+    var h = location.hash.replace(/^#/, "");
+    if (!h) return;
+    var got = {};
+    h.split("&").forEach(function (pair) {
+      var i = pair.indexOf("=");
+      if (i < 0) return;
+      var k = pair.slice(0, i);
+      if (HASH_KEYS.indexOf(k) < 0) return;
+      got[k] = decodeURIComponent(pair.slice(i + 1));
+    });
+    Object.keys(got).forEach(function (k) {
+      if (k === "scale") { scale = got[k] === "HST" ? "HST" : "UT"; }
+      else if (el[k]) { el[k].value = got[k]; }
+    });
+    /* Coordinates from a link are bare — no proper motion travels with them. */
+    if (got.ra || got.dec) { pm.ra = NaN; pm.dec = NaN; }
+    syncPresets();
+  }
+
+  /* ═══ clipboard ════════════════════════════════════════════════════════ */
+
+  var toast = $("toast"), toastTimer;
+
+  function flash(msg) {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 2000);
+  }
+
+  function copy(text, okMsg) {
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); flash(okMsg); }
+      catch (e) { flash("Copy failed"); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { flash(okMsg); }, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function summaryText() {
+    var s = lastState, r = lastResult;
+    if (!r) return "";
+    var midDate = new Date(r.start.getTime() + r.dur / 2 * 60000);
+    var lines = [
+      "NIRC2-Pol IMR starting angle",
+      "",
+      "Target      " + (s.name || "(unnamed)") + "   " + fmtRA(r.ra) + "  " + fmtDec(r.dec),
+      "Window      " + ymd(r.start) + " " + hm(r.start) + " UT  +" + r.dur.toFixed(0) + " min"
+                     + "  (" + hm(r.start, true) + " HST)",
+      "Mode        " + s.mode + (s.mode === "posang" ? "   [PARANG sign UNVERIFIED]" : ""),
+      "Band        " + s.band,
+      "",
+      "COMMAND     rotate " + deg1(r.cmd) + " " + s.mode,
+      "            bench " + deg1(r.tgt) + " deg at midpoint " + hm(midDate) + " UT"
+    ];
+    if (r.shifted) lines.push("            +" + (r.turns * 360)
+      + " deg applied so OBRT stays >= 0; " + deg1(r.obrtTarget) + " == " + deg1(r.tgt) + " deg");
+    if (r.altCmd !== null) lines.push("            other PARANG sign: rotate " + deg1(r.altCmd) + " " + s.mode);
+    lines.push("");
+    lines.push("            UT     HST    HA      EL     AZ      PA      bench  eff");
+    [["start", r.first], ["mid  ", r.mid], ["end  ", r.last]].forEach(function (pair) {
+      var p = pair[1], d = new Date(r.start.getTime() + p.min * 60000);
+      lines.push("  " + pair[0] + "     " + hm(d) + "  " + hm(d, true) + "  "
+        + padL(haStr(p.ha), 6) + "  " + padL(deg1(p.el), 5) + "  " + padL(deg1(p.az), 6)
+        + "  " + padL(deg1(p.parangDisp), 6)
+        + "  " + padL(deg1(p.bench), 5) + "  " + eff3(p.eff) + (p.extrap ? " *" : ""));
+    });
+    lines.push("");
+    lines.push("Swing       " + deg1(r.swing) + " deg    efficiency min "
+      + eff3(r.effMin) + ", mean " + eff3(r.effMean));
+    if (r.anyExtrap) lines.push("* extrapolated beyond the measured IMR range");
+    lines.push("");
+    lines.push(location.href);
+    return lines.join("\n");
+  }
+
+  function padL(str, n) { str = String(str); while (str.length < n) str = " " + str; return str; }
+
+  /* ═══ SIMBAD name resolution ═══════════════════════════════════════════
+   * A convenience only. Every failure path leaves the manual RA/Dec fields
+   * untouched and usable, so the page still works with no network at all.
+   */
+
+  var TAP = "https://simbad.cds.unistra.fr/simbad/sim-tap/sync";
+
+  function resolve() {
+    var name = el.name.value.trim();
+    var st = $("resolveStatus");
+    if (!name) { st.className = "status bad"; st.textContent = "Type a name first."; return; }
+
+    var adql = "SELECT TOP 1 b.main_id, b.ra, b.dec, b.pmra, b.pmdec "
+             + "FROM basic AS b JOIN ident AS i ON b.oid = i.oidref "
+             + "WHERE i.id = '" + name.replace(/'/g, "''") + "'";
+    var url = TAP + "?request=doQuery&lang=adql&format=json&query=" + encodeURIComponent(adql);
+
+    st.className = "status busy";
+    st.textContent = "Looking up…";
+    $("btnResolve").disabled = true;
+
+    fetch(url, { mode: "cors" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        var row = data && data.data && data.data[0];
+        if (!row) {
+          st.className = "status bad";
+          st.textContent = "Not found in SIMBAD — enter coordinates by hand.";
+          return;
+        }
+        el.ra.value = fmtRA(row[1]);
+        el.dec.value = fmtDec(row[2]);
+        pm.ra = Number(row[3]);
+        pm.dec = Number(row[4]);
+        var hasPM = isFinite(pm.ra) && isFinite(pm.dec);
+        st.className = "status ok";
+        st.textContent = row[0] + (hasPM ? " · pm applied" : " · no proper motion on file");
+        render();
+      })
+      .catch(function () {
+        st.className = "status bad";
+        st.textContent = "SIMBAD unreachable — enter coordinates by hand.";
+      })
+      .then(function () { $("btnResolve").disabled = false; });
+  }
+
+  /* ═══ wiring ═══════════════════════════════════════════════════════════ */
+
+  function syncPresets() {
+    Array.prototype.forEach.call(document.querySelectorAll("#scalePresets .preset"), function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-val") === scale ? "true" : "false");
+    });
+  }
+
+  function centreOnTransit() {
+    var ra = parseRA(el.ra.value);
+    if (!isFinite(ra) || !el.date.value) { flash("Need a valid RA and date"); return; }
+    var t = transitUT(ra, el.date.value);
+    if (!t) { flash("Need a valid date"); return; }
+    var start = new Date(t.getTime() - Number(el.dur.value || 60) / 2 * 60000);
+    if (scale === "HST") start = new Date(start.getTime() + HST_OFFSET * 3600000);
+    el.date.value = ymd(start);
+    el.time.value = hm(start);
+    render();
+  }
+
+  ["name", "ra", "dec", "date", "time", "dur", "mode", "band", "tgt", "sign"].forEach(function (k) {
+    el[k].addEventListener("input", render);
+    el[k].addEventListener("change", render);
+  });
+
+  /* Hand-edited coordinates are bare positions; drop any resolved motion. */
+  ["ra", "dec"].forEach(function (k) {
+    el[k].addEventListener("input", function () {
+      pm.ra = NaN; pm.dec = NaN;
+      $("resolveStatus").textContent = "";
+    });
+  });
+
+  el.name.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); resolve(); }
+  });
+
+  $("btnResolve").addEventListener("click", resolve);
+  $("btnTransit").addEventListener("click", centreOnTransit);
+
+  Array.prototype.forEach.call(document.querySelectorAll(".step"), function (b) {
+    b.addEventListener("click", function () {
+      var t = el[b.getAttribute("data-target")];
+      var step = Number(b.getAttribute("data-step"));
+      var next = (Number(t.value) || 0) + step;
+      var lo = Number(t.getAttribute("min")), hi = Number(t.getAttribute("max"));
+      if (isFinite(lo)) next = Math.max(lo, next);
+      if (isFinite(hi)) next = Math.min(hi, next);
+      t.value = String(next);
+      render();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("#scalePresets .preset"), function (b) {
+    b.addEventListener("click", function () {
+      scale = b.getAttribute("data-val");
+      syncPresets();
+      render();
+    });
+  });
+
+  $("btnReset").addEventListener("click", function () {
+    Object.keys(el).forEach(function (k) {
+      if (DEFAULTS[k] !== undefined) el[k].value = String(DEFAULTS[k]);
+    });
+    el.date.value = todayUT();
+    scale = DEFAULTS.scale;
+    pm.ra = NaN; pm.dec = NaN;
+    $("resolveStatus").textContent = "";
+    syncPresets();
+    centreOnTransit();
+    flash("Reset to defaults");
+  });
+
+  $("btnLink").addEventListener("click", function () {
+    copy(location.href, "Link copied");
+  });
+
+  $("btnCopyCmd").addEventListener("click", function () {
+    if (!lastResult) { flash("Nothing to copy"); return; }
+    copy("rotate " + deg1(lastResult.cmd) + " " + lastState.mode, "Command copied");
+  });
+
+  $("btnCopy").addEventListener("click", function () {
+    if (!lastResult) { flash("Nothing to copy"); return; }
+    copy(summaryText(), "Summary copied");
+  });
+
+  window.addEventListener("hashchange", function () { readHash(); render(); });
+
+  /* ═══ start up ═════════════════════════════════════════════════════════ */
+
+  function todayUT() {
+    return ymd(new Date());
+  }
+
+  el.date.value = todayUT();
+  syncPresets();
+
+  var hadHash = !!location.hash.replace(/^#/, "");
+  readHash();
+  render();
+
+  /* Without a shared link there is no meaningful start time to default to, so
+     open on the window centred at transit — the case the tool is for. */
+  if (!hadHash) centreOnTransit();
+
+  /* Exposed for the numerical cross-check against astropy. */
+  window.NIRC2POL_IMR = {
+    lst: lst, horizon: horizon, apparentPlace: apparentPlace, airmass: airmass,
+    sunEl: sunEl, jdFrom: jdFrom, commandFor: commandFor, benchFor: benchFor,
+    effAt: effAt, parseRA: parseRA, parseDec: parseDec, compute: compute,
+    transitUT: transitUT, LAT: LAT, LON: LON
+  };
+
+})();
+</script>
+</body>
+</html>
