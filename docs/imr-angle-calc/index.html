@@ -384,6 +384,13 @@
     .tiles { grid-template-columns: minmax(0, 1fr); }
   }
 
+  /* Side by side, the labels are not all the same length, so reserve two
+     lines and keep the three numbers on one baseline. Stacked, they each
+     get exactly the room they need. */
+  @media (min-width: 561px) {
+    .tile-label { min-height: 3.1em; }
+  }
+
   .tile { background: var(--surface); padding: 18px 20px; min-width: 0; }
 
   .tile-label {
@@ -525,6 +532,33 @@
   .eq-legend li { margin-bottom: 3px; }
 
   /* ─── notes ──────────────────────────────────────────────────────────── */
+  .notes summary {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .notes summary::-webkit-details-marker { display: none; }
+
+  .notes summary::before {
+    content: "+";
+    font-size: 13px;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  .notes details[open] > summary::before { content: "\2212"; }
+  .notes details[open] > summary { margin-bottom: 16px; }
+  .notes summary:hover { color: var(--accent); }
+
   .notes ol { padding-left: 18px; margin: 0; font-size: 13px; color: var(--muted); }
   .notes li { margin-bottom: 11px; }
   .notes li:last-child { margin-bottom: 0; }
@@ -917,20 +951,19 @@
 
         <div class="tiles">
           <div class="tile lead">
-            <p class="tile-label">Bench at midpoint</p>
+            <p class="tile-label">IMR bench angle at midpoint</p>
             <p class="tile-value"><span id="tMid">&mdash;</span><span class="u">deg</span></p>
             <p class="tile-sub" id="tMidSub"></p>
           </div>
           <div class="tile">
-            <p class="tile-label">Bench swing</p>
+            <p class="tile-label">IMR angle swing</p>
             <p class="tile-value"><span id="tSwing">&mdash;</span><span class="u">deg</span></p>
             <p class="tile-sub" id="tSwingSub"></p>
           </div>
           <div class="tile">
-            <p class="tile-label">Efficiency</p>
+            <p class="tile-label">Relative efficiency</p>
             <p class="tile-value"><span id="tEff">&mdash;</span></p>
             <p class="tile-sub" id="tEffSub"></p>
-            <p class="verdict" id="tEffVerdict"></p>
           </div>
         </div>
 
@@ -968,7 +1001,8 @@
       </section>
 
       <section class="card notes">
-        <h2>How this is worked out</h2>
+        <details>
+        <summary>How this is worked out</summary>
         <ol>
           <li><strong>The rotator relations.</strong> From
             <a href="https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-Ops/issues/185">issue&nbsp;185</a>,
@@ -1015,8 +1049,8 @@
             deck and the floor rises to roughly 37&deg;, while elsewhere it is 18&deg;
             unvignetted and vignetted below that. The upper limit is 89.5&deg;, and stable
             guiding is not guaranteed for targets transiting above about 85&deg;. The page
-            checks those documented corner values and raises a flag, but the real boundary is
-            a curve &mdash; treat a warning as a prompt to go and read the
+            checks those documented values and raises a flag &mdash; treat a warning as a
+            prompt to go and read the
             <a href="https://www2.keck.hawaii.edu/inst/common/TelLimits.html">Keck pointing
             limits</a>, and the absence of one as no guarantee. Nor is any of this a check on
             whether the target is worth observing: darkness is flagged from the Sun's
@@ -1029,6 +1063,7 @@
             and refraction are neglected &mdash; all well under 0.02&deg; here, far below the
             uncertainty in the rotator relations themselves.</li>
         </ol>
+        </details>
       </section>
 
     </div>
@@ -1087,7 +1122,8 @@
   var INSTANGL = 0.7;   /* NIRC2 instrument angle, deg */
   var HST_OFFSET = -10; /* Hawaii is UTC-10 year round */
 
-  var EFF_FRAC = 0.95;  /* "near enough" is this fraction of the target-angle value */
+  var EFF_FRAC = 0.95;  /* the efficiency plot's reference line, as a fraction of
+                           the value at the target angle */
 
   /* ═══ angles ═══════════════════════════════════════════════════════════ */
 
@@ -1386,8 +1422,6 @@
 
     var effTarget = effAt(s.band, tgt).v;
     var floor = EFF_FRAC * effTarget;
-    var nearPeak = samples.filter(function (p) { return p.eff >= floor; }).length
-                   / N_SAMPLES * dur;
 
     return {
       ra: ra, dec: dec, start: start, dur: dur, tgt: tgt,
@@ -1398,7 +1432,7 @@
       benchMin: Math.min.apply(null, benches), benchMax: Math.max.apply(null, benches),
       effMin: Math.min.apply(null, effs),
       effMean: effs.reduce(function (a, v) { return a + v; }, 0) / effs.length,
-      effTarget: effTarget, effFloor: floor, nearPeak: nearPeak,
+      effTarget: effTarget, effFloor: floor,
       anyExtrap: samples.some(function (p) { return p.extrap; })
     };
   }
@@ -1771,16 +1805,6 @@
     $("tEff").textContent = eff3(r.effMin);
     $("tEffSub").textContent = "min · mean " + eff3(r.effMean) + " · band " + s.band;
 
-    var v = $("tEffVerdict");
-    if (r.nearPeak >= r.dur - 1e-6) {
-      v.className = "verdict yes";
-      v.textContent = "within " + Math.round(EFF_FRAC * 100) + "% of the target value throughout";
-    } else {
-      v.className = "verdict no";
-      v.textContent = r.nearPeak.toFixed(0) + " of " + r.dur.toFixed(0)
-                      + " min within " + Math.round(EFF_FRAC * 100) + "% of the target value";
-    }
-
     /* ── ledger ── */
     var rows = [["Start", r.first], ["Midpoint", r.mid], ["End", r.last]];
     var body = $("ledgerBody");
@@ -1856,7 +1880,7 @@
 
   function blankOut() {
     ["tMid", "tSwing", "tEff"].forEach(function (id) { $(id).textContent = "—"; });
-    ["tMidSub", "tSwingSub", "tEffSub", "tEffVerdict"].forEach(function (id) { $(id).textContent = ""; });
+    ["tMidSub", "tSwingSub", "tEffSub"].forEach(function (id) { $(id).textContent = ""; });
     $("ledgerBody").textContent = "";
     $("plotBench").textContent = "";
     $("plotEff").textContent = "";
