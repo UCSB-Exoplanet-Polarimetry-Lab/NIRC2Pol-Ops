@@ -1014,12 +1014,6 @@
             mechanism &mdash; and 0.7&deg; is NIRC2's <span class="kw">INSTANGL</span>. Only
             the stationary and vertang forms have been confirmed on sky.</li>
 
-          <li><strong>Why the angle drifts.</strong> NIRC2 sits at a Nasmyth focus, so the
-            field rotates with elevation. vertang holds the image fixed to the horizon and so
-            compensates elevation alone; posang holds it fixed on sky and compensates the
-            parallactic angle as well. Either way the bench angle moves while you track, and
-            all you get to choose is where it starts.</li>
-
           <li><strong>Solving for the start.</strong> Inverting the relation above gives
             <span class="mono">bench(t) = (C + 0.7 + EL(t) &minus; s&middot;PARANG(t)) / 2</span>
             for a fixed command <span class="mono">C</span>. The page picks the
@@ -1027,19 +1021,20 @@
             midpoint of the window, so the sequence spends as much time as possible near
             peak.</li>
 
-          <li><strong>Never a negative command.</strong> Adding 360&deg; to the command is a
-            whole turn in the doubled sky frame, which is 180&deg; of bench &mdash; the same
-            K-mirror orientation. So a negative solution is shifted up by 360&deg; and the
-            page tells you when it has done that. For the same reason the bench angle itself
-            is only defined modulo 180&deg;, and is reported on whichever branch holds your
-            target angle &mdash; that keeps the track continuous rather than tearing it in
-            two. <span class="mono">show -s ao obrt</span> may read back a value 180&deg;
-            away, or a multiple of it.</li>
+          <li><strong>Never a negative OBRT.</strong> Every 180&deg; of bench is the same
+            K-mirror orientation, so the target angle plus any multiple of 180&deg; is an
+            equally good place to sit &mdash; each reached by adding the matching multiple of
+            360&deg; to the command. The page takes the lowest one that keeps
+            <span class="mono">AO.OBRT</span> at or above zero for the whole window, not just
+            at the midpoint, since a long sequence can be comfortable in the middle and dip
+            below zero at one end. When it has had to go up a turn it says so, and the bench
+            angles reported throughout are the OBRT values you should actually read back.</li>
 
           <li><strong>Efficiency.</strong> The curves are the commissioning measurements of
-            normalized modulation amplitude against IMR angle, digitized from the summary
-            plot &mdash; approximate to about &plusmn;0.02, and sampled only over
-            0&ndash;150&deg; (0&ndash;90&deg; in K). Values in the unsampled stretch back
+            normalized modulation amplitude against IMR angle, from Lewis et&nbsp;al. in prep.
+            (2026), the NIRC2-Pol first light paper. They are digitized from the summary plot
+            &mdash; approximate to about &plusmn;0.02, and sampled only over 0&ndash;150&deg;
+            (0&ndash;90&deg; in K). Values in the unsampled stretch back
             round to 0&deg; are drawn dashed and marked as extrapolated. No 90&deg;
             periodicity is assumed; the data does not cleanly support it.</li>
 
@@ -1085,8 +1080,9 @@
   "use strict";
 
   /* ═══ measured efficiency ══════════════════════════════════════════════
-   * Normalized modulation amplitude against IMR (bench) angle, from the
-   * NIRC2-Pol commissioning internal calibration sequences — issue #118.
+   * Normalized modulation amplitude against IMR (bench) angle, from Lewis et
+   * al. in prep. (2026), the NIRC2-Pol first light paper — measured in the
+   * commissioning internal calibration sequences, issue #118.
    *
    * These are digitized by eye from the summary plot; no tabulated source
    * exists. Treat them as good to roughly ±0.02. Sampling stops at 150° in
@@ -1371,35 +1367,39 @@
     /* One command holds for the whole sequence, so anchor it at the midpoint:
        that is what splits the drift evenly either side of the target angle. */
     var mid = samples[(N_SAMPLES - 1) / 2 | 0];
-    var raw = commandFor(tgt, s.mode, mid.el, mid.parang, s.sign);
-    var cmd = norm360(raw);
-    var shifted = Math.abs(cmd - raw) > 1e-9;
+
+    /* OBRT must never go negative, and every 180 deg of it is the same
+       K-mirror orientation, so the usable solutions are the target angle plus
+       any multiple of 180 -- each reached by adding the matching multiple of
+       360 to the command. Take the lowest one that keeps OBRT at or above zero
+       for the whole window, not just at the midpoint: a long sequence can be
+       fine in the middle and dip below zero at one end. */
+    var solve = function (sg) {
+      var c0 = commandFor(tgt, s.mode, mid.el, mid.parang, sg), lo = Infinity, j, v;
+      for (j = 0; j < samples.length; j++) {
+        v = benchFor(c0, s.mode, samples[j].el, samples[j].parang, sg);
+        if (v < lo) lo = v;
+      }
+      var k = lo < 0 ? Math.ceil(-lo / 180) : 0;
+      return { cmd: c0 + 360 * k, turns: k, obrtTarget: tgt + 180 * k };
+    };
+
+    var sol = solve(s.sign);
+    var cmd = sol.cmd;
+    var shifted = sol.turns > 0;
 
     /* In posang the parallactic sign is untested, so carry both. */
-    var altCmd = null;
-    if (s.mode === "posang") {
-      altCmd = norm360(commandFor(tgt, s.mode, mid.el, mid.parang, -s.sign));
-    }
-
-    /* Every 180 deg of bench is the same orientation, so the reported angle can
-       sit on any branch. Pick the one holding the target angle and keep the
-       whole sequence on it: folding into 0-180 instead would tear the track in
-       two whenever the target sits near either end. */
-    var branch = function (c, sg) {
-      return 180 * Math.round((benchFor(c, s.mode, mid.el, mid.parang, sg) - tgt) / 180);
-    };
-    var br = branch(cmd, s.sign);
-    var brAlt = altCmd === null ? 0 : branch(altCmd, -s.sign);
+    var alt = s.mode === "posang" ? solve(-s.sign) : null;
+    var altCmd = alt ? alt.cmd : null;
 
     for (i = 0; i < samples.length; i++) {
       sk = samples[i];
-      sk.benchRaw = benchFor(cmd, s.mode, sk.el, sk.parang, s.sign);
-      sk.bench = sk.benchRaw - br;
+      sk.bench = benchFor(cmd, s.mode, sk.el, sk.parang, s.sign);
       b = effAt(s.band, sk.bench);
       sk.eff = b.v;
       sk.extrap = b.extrap;
       if (altCmd !== null) {
-        sk.benchAlt = benchFor(altCmd, s.mode, sk.el, sk.parang, -s.sign) - brAlt;
+        sk.benchAlt = benchFor(altCmd, s.mode, sk.el, sk.parang, -s.sign);
         sk.effAlt = effAt(s.band, sk.benchAlt).v;
       }
     }
@@ -1407,17 +1407,15 @@
     var benches = samples.map(function (p) { return p.bench; });
     var effs = samples.map(function (p) { return p.eff; });
 
-    /* Swing is measured on the unwrapped angle so a run across the 180°
-       boundary is not reported as a 180° jump. */
-    var raws = samples.map(function (p) { return p.benchRaw; });
-    var swing = Math.max.apply(null, raws) - Math.min.apply(null, raws);
+    var swing = Math.max.apply(null, benches) - Math.min.apply(null, benches);
 
     var effTarget = effAt(s.band, tgt).v;
     var floor = EFF_FRAC * effTarget;
 
     return {
       ra: ra, dec: dec, start: start, dur: dur, tgt: tgt,
-      cmd: cmd, raw: raw, shifted: shifted, altCmd: altCmd,
+      cmd: cmd, turns: sol.turns, obrtTarget: sol.obrtTarget,
+      shifted: shifted, altCmd: altCmd,
       samples: samples,
       first: samples[0], mid: mid, last: samples[N_SAMPLES - 1],
       swing: swing,
@@ -1711,7 +1709,7 @@
     var cmdStr = "rotate " + deg1(r.cmd) + " " + s.mode;
     $("cmdText").textContent = cmdStr;
 
-    var sub = "Puts the bench at " + deg1(r.tgt) + "° at the midpoint, "
+    var sub = "Puts the bench at " + deg1(r.obrtTarget) + "° at the midpoint, "
             + hm(new Date(r.start.getTime() + r.dur / 2 * 60000)) + " UT.";
     if (s.mode === "stationary") {
       sub = "Bench holds at " + deg1(benchFor(r.cmd, "stationary", 0, 0, 1))
@@ -1722,10 +1720,12 @@
     /* ── warnings ── */
     if (r.shifted) {
       warns.appendChild(warn(
-        "The direct solution is " + deg1(r.raw) + "°. Adding a full turn gives "
-        + deg1(r.cmd) + "°, which is the same K-mirror orientation and avoids a negative "
-        + "command. <span class=\"mono\">show -s ao obrt</span> may read back 180° away from "
-        + "the bench angles below.", "Shifted by +360°."));
+        "On the nearest branch OBRT would go negative part-way through this sequence, so the "
+        + "command is raised by " + (r.turns * 360) + "°, putting the bench at "
+        + deg1(r.obrtTarget) + "° at the midpoint rather than " + deg1(r.tgt)
+        + "°. That is the same K-mirror orientation, so the efficiency is unchanged, and it "
+        + "keeps <span class=\"mono\">show -s ao obrt</span> positive throughout.",
+        "Shifted to keep OBRT positive."));
     }
 
     var elMin = Math.min.apply(null, r.samples.map(function (p) { return p.el; }));
@@ -1789,7 +1789,9 @@
 
     /* ── tiles ── */
     $("tMid").textContent = deg1(r.mid.bench);
-    $("tMidSub").textContent = "target " + deg1(r.tgt) + "° · efficiency " + eff3(r.effTarget);
+    $("tMidSub").textContent = "target " + deg1(r.obrtTarget)
+      + (r.shifted ? "° ≡ " + deg1(r.tgt) + "°" : "°")
+      + " · efficiency " + eff3(r.effTarget);
 
     $("tSwing").textContent = deg1(r.swing);
     $("tSwingSub").textContent = deg1(r.first.bench) + "° → " + deg1(r.last.bench) + "°";
@@ -1841,9 +1843,9 @@
 
     lineChart($("plotBench"), {
       title: "Bench angle through the sequence",
-      xLabel: "minutes from start", yLabel: "bench angle (deg)",
+      xLabel: "minutes from start", yLabel: "IMR bench angle, OBRT (deg)",
       series: benchSeries,
-      hLine: r.tgt, hLabel: "target " + deg1(r.tgt) + "°",
+      hLine: r.obrtTarget, hLabel: "target " + deg1(r.obrtTarget) + "°",
       markers: [{ x: r.mid.min, y: r.mid.bench, label: deg1(r.mid.bench) + "°" }]
     });
 
@@ -1965,7 +1967,8 @@
       "COMMAND     rotate " + deg1(r.cmd) + " " + s.mode,
       "            bench " + deg1(r.tgt) + " deg at midpoint " + hm(midDate) + " UT"
     ];
-    if (r.shifted) lines.push("            (direct solution " + deg1(r.raw) + " deg, +360 applied)");
+    if (r.shifted) lines.push("            +" + (r.turns * 360)
+      + " deg applied so OBRT stays >= 0; " + deg1(r.obrtTarget) + " == " + deg1(r.tgt) + " deg");
     if (r.altCmd !== null) lines.push("            other PARANG sign: rotate " + deg1(r.altCmd) + " " + s.mode);
     lines.push("");
     lines.push("            UT     HST    HA      EL     AZ      PA      bench  eff");
