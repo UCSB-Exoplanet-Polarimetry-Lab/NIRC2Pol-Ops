@@ -950,7 +950,7 @@
           <thead>
             <tr>
               <th class="col-name">Point</th>
-              <th>UT</th><th>HST</th><th>HA</th><th>EL</th><th>PA</th><th>Airm.</th><th>Bench</th><th>Eff.</th>
+              <th>UT</th><th>HST</th><th>HA</th><th>EL</th><th>AZ</th><th>PA</th><th>Airm.</th><th>Bench</th><th>Eff.</th>
             </tr>
           </thead>
           <tbody id="ledgerBody"></tbody>
@@ -1008,6 +1008,19 @@
             0&ndash;150&deg; (0&ndash;90&deg; in K). Values in the unsampled stretch back
             round to 0&deg; are drawn dashed and marked as extrapolated. No 90&deg;
             periodicity is assumed; the data does not cleanly support it.</li>
+
+          <li><strong>Pointing limits are only flagged, not modelled.</strong> Keck II's
+            accessible sky is not a simple elevation cut: across azimuths of about
+            185&deg;&ndash;333&deg;, south through west, the telescope runs into the Nasmyth
+            deck and the floor rises to roughly 37&deg;, while elsewhere it is 18&deg;
+            unvignetted and vignetted below that. The upper limit is 89.5&deg;, and stable
+            guiding is not guaranteed for targets transiting above about 85&deg;. The page
+            checks those documented corner values and raises a flag, but the real boundary is
+            a curve &mdash; treat a warning as a prompt to go and read the
+            <a href="https://www2.keck.hawaii.edu/inst/common/TelLimits.html">Keck pointing
+            limits</a>, and the absence of one as no guarantee. Nor is any of this a check on
+            whether the target is worth observing: darkness is flagged from the Sun's
+            elevation, but the Moon, the weather and the azimuth wrap are not considered.</li>
 
           <li><strong>Positions.</strong> Coordinates are taken as ICRS/J2000, moved by
             proper motion to the epoch of observation and precessed to the mean equinox of
@@ -1191,14 +1204,35 @@
     };
   }
 
-  /** Elevation and parallactic angle for an hour angle, both in degrees. */
+  /** Elevation, azimuth (north through east) and parallactic angle for an
+   *  hour angle, all in degrees. */
   function horizon(haDeg, decDeg) {
     var el = Math.asin(Math.max(-1, Math.min(1,
       sind(decDeg) * sind(LAT) + cosd(decDeg) * cosd(LAT) * cosd(haDeg)))) * R2D;
     var q = Math.atan2(sind(haDeg),
       tand(LAT) * cosd(decDeg) - sind(decDeg) * cosd(haDeg)) * R2D;
-    return { el: el, parang: q };
+    var az = norm360(Math.atan2(-cosd(decDeg) * sind(haDeg),
+      sind(decDeg) * cosd(LAT) - cosd(decDeg) * sind(LAT) * cosd(haDeg)) * R2D);
+    return { el: el, az: az, parang: q };
   }
+
+  /* ═══ Keck II pointing limits ══════════════════════════════════════════
+   * https://www2.keck.hawaii.edu/inst/common/TelLimits.html
+   *
+   * The real boundary is a curve, not a rectangle: across the south and west
+   * the telescope runs into the Nasmyth deck, and the elevation floor there
+   * rises to roughly 37 deg. These are the documented corner values, used
+   * only to raise a flag — check the limits page for the actual shape before
+   * committing to anything close to the edge.
+   */
+  var LIM = {
+    elLow: 18,          /* unvignetted floor away from the deck */
+    elHigh: 89.5,       /* upper limit */
+    elGuide: 85,        /* stable guiding not guaranteed above this at transit */
+    deckAz0: 185.3, deckAz1: 332.8, deckEl: 36.8
+  };
+
+  function inDeckAzimuth(az) { return az >= LIM.deckAz0 && az <= LIM.deckAz1; }
 
   /** Pickering (2002) airmass — behaves down to the horizon, unlike sec z. */
   function airmass(el) {
@@ -1283,7 +1317,7 @@
       var p = apparentPlace(ra, dec, s.pmra, s.pmdec, jd);
       var ha = norm180(lst(jd) - p.ra);
       var h = horizon(ha, p.dec);
-      return { jd: jd, ha: ha, el: h.el, parang: h.parang, sun: sunEl(jd) };
+      return { jd: jd, ha: ha, el: h.el, az: h.az, parang: h.parang, sun: sunEl(jd) };
     };
 
     /* Sky positions first, so the parallactic angle can be unwrapped before
@@ -1671,17 +1705,39 @@
     var elMin = Math.min.apply(null, r.samples.map(function (p) { return p.el; }));
     var elMax = Math.max.apply(null, r.samples.map(function (p) { return p.el; }));
 
+    var LIMS = "<a href=\"https://www2.keck.hawaii.edu/inst/common/TelLimits.html\">"
+             + "Keck pointing limits</a>";
+
     if (elMin < 0) {
       warns.appendChild(warn("The target is below the horizon for part of this window (down to "
         + deg1(elMin) + "°).", "Below horizon."));
-    } else if (elMin < 18) {
+    } else if (elMin < LIM.elLow) {
       warns.appendChild(warn("Elevation drops to " + deg1(elMin)
-        + "°, below Keck's 18° limit.", "Below the elevation limit."));
+        + "°. Below 18° the pupil is vignetted. See the " + LIMS + ".",
+        "Below the unvignetted limit."));
     }
-    if (elMax > 89.5) {
+
+    /* The floor across the south and west is the Nasmyth deck, not 18 deg. */
+    var deck = r.samples.filter(function (p) {
+      return inDeckAzimuth(p.az) && p.el < LIM.deckEl && p.el > 0;
+    });
+    if (deck.length) {
+      var dEl = Math.min.apply(null, deck.map(function (p) { return p.el; }));
+      warns.appendChild(warn("Part of this window is in the south-to-west azimuth range ("
+        + deg1(LIM.deckAz0) + "°–" + deg1(LIM.deckAz1) + "°) at elevations down to "
+        + deg1(dEl) + "°, where Keck II runs into the Nasmyth deck at roughly "
+        + deg1(LIM.deckEl) + "°. The real boundary is a curve rather than a corner — check "
+        + "the " + LIMS + " before relying on this window.", "Nasmyth deck."));
+    }
+
+    if (elMax > LIM.elHigh) {
       warns.appendChild(warn("The target passes within " + deg1(90 - elMax)
-        + "° of the zenith. Tracking degrades badly in the keyhole and the rotator moves "
-        + "fast.", "Near zenith."));
+        + "° of the zenith, above the " + deg1(LIM.elHigh) + "° limit.", "Above the limit."));
+    } else if (elMax > LIM.elGuide) {
+      warns.appendChild(warn("The target reaches " + deg1(elMax)
+        + "°. Stable guiding is not guaranteed for targets transiting above about "
+        + deg1(LIM.elGuide) + "°, and the rotator moves fast near the zenith.",
+        "Near zenith.", true));
     }
 
     var haSign = r.samples.map(function (p) { return p.ha > 0; });
@@ -1740,6 +1796,7 @@
         + "<td>" + hm(d, true) + "</td>"
         + "<td>" + haStr(p.ha) + "</td>"
         + "<td>" + deg1(p.el) + "</td>"
+        + "<td>" + deg1(p.az) + "</td>"
         + "<td>" + deg1(p.parangDisp) + "</td>"
         + "<td" + (isFinite(airmass(p.el)) ? ">" + deg2(airmass(p.el)) : " class=\"na\">—")
         + "</td>"
@@ -1895,11 +1952,12 @@
     if (r.shifted) lines.push("            (direct solution " + deg1(r.raw) + " deg, +360 applied)");
     if (r.altCmd !== null) lines.push("            other PARANG sign: rotate " + deg1(r.altCmd) + " " + s.mode);
     lines.push("");
-    lines.push("            UT     HST    HA      EL     PA      bench  eff");
+    lines.push("            UT     HST    HA      EL     AZ      PA      bench  eff");
     [["start", r.first], ["mid  ", r.mid], ["end  ", r.last]].forEach(function (pair) {
       var p = pair[1], d = new Date(r.start.getTime() + p.min * 60000);
       lines.push("  " + pair[0] + "     " + hm(d) + "  " + hm(d, true) + "  "
-        + padL(haStr(p.ha), 6) + "  " + padL(deg1(p.el), 5) + "  " + padL(deg1(p.parangDisp), 6)
+        + padL(haStr(p.ha), 6) + "  " + padL(deg1(p.el), 5) + "  " + padL(deg1(p.az), 6)
+        + "  " + padL(deg1(p.parangDisp), 6)
         + "  " + padL(deg1(p.bench), 5) + "  " + eff3(p.eff) + (p.extrap ? " *" : ""));
     });
     lines.push("");
