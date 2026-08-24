@@ -13,7 +13,7 @@ This repository contains scripts for efficiently operating the NIRC2 Polarimetry
 **Files in this repo**
 
 - [Folder] `Commissioning Analysis` = Various files and scripts from use in commissioning; kept as a "historical record"
-- [Folder] `docs/` = Source for the efficiency calculator and SNR calculator, published via GitHub Pages
+- [Folder] `docs/` = Source for the observing planning calculators (HWP cycle timing, SNR, IMR starting angle), published via GitHub Pages
 - `HWP_Rotation_Sequence.sh` = Used for typical observing sequences (four critical angles: 0, 45, 22.5, 67.5 deg)
 - `Internal_Pol_Cal.sh` = Takes data rotating both HWP and IMR for instrumental polarization calibration. Options available for dome and sky (needed due to differences in IMR operation on sky vs. daytime cals)
 - `Continuous_Pol_Flats.sh` = Takes polarimetric dome flats (i.e. HWP continuously rotating). Note that this is _not_ currently the recommended strategy for flats; we suggest taking them at the typical HWP Angles. Options available for dome and sky observations
@@ -40,7 +40,7 @@ The NIRC2-Pol operations/observer's guide is available in two forms:
 
 See also the [NIRC2 Observer's Manual](https://www2.keck.hawaii.edu/inst/nirc2/ObserversManual.html) for the instrument as a whole.
 
-## Observing efficiency and SNR calculators
+## Observing planning calculators
 
 Planning observations with NIRC2-Pol? An interactive efficiency calculator is available at:
 
@@ -67,6 +67,20 @@ Similarly, we have implemented the framework for polarimetric high-contrast imag
 **https://ucsb-exoplanet-polarimetry-lab.github.io/NIRC2Pol-Ops/exposure-time-calc/**
 
 Note that this SNR calculator has _not_ yet been rigorously tested, so use at your own risk.
+
+Finally, polarimetric efficiency depends on the image rotator (IMR) bench angle, peaking near 45°. Off sky you can just set it — `modify -s ao obrt=45` — but on sky the rotator tracks, so the bench angle drifts throughout a sequence and all you get to choose is where it starts. The IMR starting angle calculator takes a target, a start time and a sequence length, and returns the `rotate` command that puts the bench on 45° at the midpoint of the window, along with the bench-angle and efficiency track across the sequence:
+
+**https://ucsb-exoplanet-polarimetry-lab.github.io/NIRC2Pol-Ops/imr-angle-calc/**
+
+It encodes the rotator relations from [issue #185](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-Ops/issues/185), where `D` is the bench/OBRT angle:
+
+```
+stationary   command = 2*D - 0.7
+vertang      command = 2*D - 0.7 - EL
+posang       command = 2*D - 0.7 +/- PARANG - EL
+```
+
+The factor of two is the K-mirror — the sky rotates twice as fast as the mechanism — and 0.7° is NIRC2's `INSTANGL`. NIRC2 sits at a Nasmyth focus, so the field rotates with elevation: `vertang` holds the image fixed to the horizon and compensates elevation alone, while `posang` holds it fixed on sky and compensates the parallactic angle as well. Only the stationary and vertang forms have been confirmed on sky — **the sign of the parallactic term in posang is still untested**, so the page offers both and flags the mode accordingly. The efficiency curves are the commissioning measurements from [issue #118](https://github.com/UCSB-Exoplanet-Polarimetry-Lab/NIRC2Pol-Ops/issues/118), digitized from the summary plot and so approximate to about ±0.02.
 
 ## Citation and Acknowledgements
 
