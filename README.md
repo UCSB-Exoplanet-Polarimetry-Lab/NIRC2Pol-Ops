@@ -1,6 +1,7 @@
 # NIRC2-Pol Operations Software
 
 Last Updated: 14 Aug 2026
+Webpage: https://ucsb-exoplanet-polarimetry-lab.github.io/NIRC2Pol-Ops/
 
 NIRC2 Polarimetry (NIRC2-Pol, or nirc2p) is a dual-channel polarimetry mode on the Keck II NIRC2 infrared imager. Dual-channel polarimetry uses a polarizing beamsplitter to split the incoming light into two orthogonal polarization states, and a half-wave plate (HWP) to modulate the angle of polarization. Through cycles of four critical HWP angles (0°, 45°, 22.5°, 67.5°), it is possible to recover the linear Stokes vector components Q and U (see de Boer+ 2020 for a description of dual-channel polarimetry and double differencing). 
 
